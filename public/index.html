@@ -86,6 +86,15 @@
 </section>
 <div id="flash"></div>
 
+<!-- phones held sideways: the ribbon and the cards tuck away behind these -->
+<div class="fabs" aria-label="Quick controls">
+  <button id="fab-full" title="Full screen" aria-label="Full screen">&#x26F6;</button>
+  <button id="fab-info" title="Show the activity and details" aria-label="Show the activity and details" aria-expanded="false">i</button>
+  <button id="fab-music" title="Spotify" aria-label="Spotify">&#9835;</button>
+  <button id="fab-dock" title="Show the buttons" aria-label="Show the buttons" aria-expanded="false">&#9776;</button>
+</div>
+<div class="card tip" id="tip" role="status" hidden></div>
+
 <nav class="card dock">
   <button data-zone="overview">Overview</button>
   <button data-zone="boss">Boss</button>
@@ -103,6 +112,8 @@
   <button data-zone="wlhr" hidden>HQ HR</button>
   <button data-zone="city">City view</button>
   <button id="refresh" title="Fetch the latest activity and usage now">&#x21bb; Refresh</button>
+  <button id="fullscreen" title="Full screen">&#x26F6; Full screen</button>
+  <button id="install" title="Install Clawd Mifflin as an app" hidden>&#x2B07; Install app</button>
   <button id="report-btn" title="This week in numbers">&#x1F4CA; Report</button>
   <button id="spotify" title="Spotify on the Mac">&#9835; Spotify</button>
   <button id="timelapse" title="Play back today and save it as a video">&#x23FA; Time-lapse</button>

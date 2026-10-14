@@ -259,6 +259,7 @@ const radio = (() => {
 })();
 let musicNow = null;
 function renderMusic(m) {
+  $('fab-music')?.classList.toggle('playing', !!m?.playing);
   if (m && musicNow?.canConnect !== undefined && m.canConnect === undefined) m = { ...m, canConnect: musicNow.canConnect };
   musicNow = m;
   ctx.music = !!m?.playing;
@@ -565,7 +566,7 @@ $('sound').setAttribute('aria-checked', String(sound.on));
 $('alerts').onclick = async () => { $('alerts').setAttribute('aria-checked', String(await setAlerts(!alerts.on))); };
 $('alerts').setAttribute('aria-checked', String(alerts.on));
 if (typeof Notification === 'undefined') $('alerts').hidden = true;
-$('report-btn').onclick = () => { openReport(ctx.state?.report); $('digest').hidden = source !== 'local'; };
+$('report-btn').onclick = () => { openReport(ctx.state?.report); $('digest').hidden = source !== 'local'; if (document.body.classList.contains('compact')) setDock(false); };
 $('digest').onclick = async () => {
   $('digest-msg').textContent = 'Sending…';
   const r = await fetch('api/digest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }).then((x) => x.json()).catch(() => null);
@@ -603,7 +604,63 @@ $('replay').onclick = () => {
   });
 };
 $('live').setAttribute('aria-checked', String(!paused));
-document.querySelectorAll('.dock [data-zone]').forEach((b) => (b.onclick = () => view(b.dataset.zone)));
+document.querySelectorAll('.dock [data-zone]').forEach((b) => (b.onclick = () => { view(b.dataset.zone); if (document.body.classList.contains('compact')) setDock(false); }));
+
+// ------------------------------------------------------------------ phones held sideways: the compact layout
+// Touch screens in landscape that are short (phones, not tablets): the ribbon hides behind ☰ and closes again
+// after picking a view, the activity and legend behind i, Spotify becomes its own bubble. Desktops are unchanged.
+const phoneLandscape = matchMedia('(orientation: landscape) and (max-height: 520px) and (pointer: coarse)');
+function setDock(open) {
+  document.body.classList.toggle('dock-open', open);
+  $('fab-dock').setAttribute('aria-expanded', String(open));
+  $('fab-dock').textContent = open ? '×' : '☰';
+}
+function layoutMode() {
+  document.body.classList.toggle('compact', phoneLandscape.matches);
+  if (!phoneLandscape.matches) { setDock(false); document.body.classList.remove('info-open'); $('fab-info').setAttribute('aria-expanded', 'false'); }
+}
+phoneLandscape.addEventListener?.('change', layoutMode);
+layoutMode();
+$('fab-dock').onclick = () => setDock(!document.body.classList.contains('dock-open'));
+$('fab-info').onclick = () => $('fab-info').setAttribute('aria-expanded', String(document.body.classList.toggle('info-open')));
+$('fab-music').onclick = () => $('spotify').onclick();
+
+// ------------------------------------------------------------------ full screen, and installing it as an app
+function tip(text, secs = 7) {
+  $('tip').textContent = text;
+  $('tip').hidden = false;
+  clearTimeout(tip.t);
+  tip.t = setTimeout(() => ($('tip').hidden = true), secs * 1000);
+}
+const standalone = () => matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone === true;
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+async function toggleFullscreen() {
+  const el = document.documentElement, fs = document.fullscreenElement || document.webkitFullscreenElement;
+  try {
+    if (fs) await (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    else if (el.requestFullscreen) await el.requestFullscreen({ navigationUI: 'hide' });
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    else throw new Error('unsupported');
+  } catch {
+    // iPhone Safari has no full screen for pages: an app on the Home Screen opens without the browser bars
+    tip(isIOS ? 'For full screen on iPhone: Share → Add to Home Screen, then open Clawd Mifflin from there.' : 'This browser does not allow full screen here.');
+  }
+}
+const fsChanged = () => { const on = !!(document.fullscreenElement || document.webkitFullscreenElement); $('fab-full').classList.toggle('on', on); $('fullscreen').textContent = on ? '⛶ Exit full screen' : '⛶ Full screen'; };
+document.addEventListener('fullscreenchange', fsChanged);
+document.addEventListener('webkitfullscreenchange', fsChanged);
+$('fullscreen').onclick = toggleFullscreen;
+$('fab-full').onclick = toggleFullscreen;
+// Chrome, Edge and Samsung Internet offer an install prompt; Safari installs from its own menus
+let installPrompt = null;
+addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; $('install').hidden = false; });
+addEventListener('appinstalled', () => { installPrompt = null; $('install').hidden = true; tip('Installed: open Clawd Mifflin from your apps.'); });
+const safari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
+if (!standalone() && (isIOS || safari)) $('install').hidden = false;
+$('install').onclick = async () => {
+  if (installPrompt) { installPrompt.prompt(); await installPrompt.userChoice.catch(() => null); installPrompt = null; $('install').hidden = true; return; }
+  tip(isIOS ? 'To install: tap Share (the square with the arrow) → Add to Home Screen.' : safari ? 'To install: File → Add to Dock (Safari 17 or later).' : 'Use the install icon in the address bar, or the browser menu → Install app.', 9);
+};
 $('time').oninput = (e) => {
   timeCtl.override = Number(e.target.value);
   $('time-label').textContent = timeCtl.override < 0 ? 'auto' : `${String(Math.floor(timeCtl.override)).padStart(2, '0')}:${String(Math.round((timeCtl.override % 1) * 60)).padStart(2, '0')}`;

@@ -152,7 +152,7 @@ a { color: var(--clawd); }
 .proscons .con::before { content: "− "; color: var(--bad); font-weight: 800; }
 .panel pre.err { margin: 2px 0 8px; padding: 6px 8px; border-radius: 6px; background: rgba(229, 72, 77, 0.1); border-left: 3px solid var(--bad); font: 11px/1.35 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 160px; overflow: auto; }
 .panel pre.err.focus { background: rgba(229, 72, 77, 0.22); }
-.report { left: 50%; top: 12px; transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - var(--bottom) - 12px); overflow: auto; z-index: 9; padding: 16px 18px; }
+.report { left: 50%; top: 12px; transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - var(--bottom) - 12px); overflow: auto; z-index: 15; padding: 16px 18px; } /* above the panel and the round buttons */
 .report .x { position: absolute; right: 10px; top: 6px; border: 0; background: none; font-size: 22px; cursor: pointer; color: var(--muted); }
 .report h3 { margin: 0 0 6px; font-size: 18px; }
 .report h2 { margin-top: 14px; }
@@ -172,6 +172,45 @@ a { color: var(--clawd); }
 @keyframes alarm { 50% { box-shadow: 0 0 0 5px rgba(214, 69, 61, 0.25), 0 6px 24px rgba(0, 0, 0, 0.12); } }
 .panel .spark svg { fill: var(--clawd); margin: 2px 0 6px; }
 #timelapse.rec-on { background: var(--bad); color: #fff; }
+
+/* ---------- phones held sideways (touch, short screen): compact layout ----------
+   The ribbon (dock) and the activity/legend hide behind round buttons; usage shrinks to two lines; Spotify is
+   its own small bubble. Desktops and tablets keep the full layout. */
+.fabs { display: none; }
+.tip { left: 50%; bottom: var(--bottom); transform: translateX(-50%); z-index: 14; max-width: min(360px, calc(100vw - 24px)); font-size: 13px; }
+body.compact .fabs { display: flex; position: fixed; z-index: 12; gap: 8px;
+  right: calc(10px + env(safe-area-inset-right, 0px)); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+.fabs button { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  font: 700 17px/1 system-ui, sans-serif; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); cursor: pointer; display: grid; place-items: center; }
+.fabs button.on, .fabs button[aria-expanded="true"] { background: var(--clawd); color: #fff; }
+.fabs #fab-music.playing { background: #1DB954; color: #fff; }
+body.compact .dock { display: none; }
+body.compact.dock-open .dock { display: flex; flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding: 6px; scrollbar-width: none;
+  left: calc(10px + env(safe-area-inset-left, 0px)); right: calc(214px + env(safe-area-inset-right, 0px)); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+body.compact .dock button, body.compact .time { flex: none; }
+body.compact #spotify { display: none; }
+body.compact .left { top: calc(8px + env(safe-area-inset-top, 0px)); left: calc(8px + env(safe-area-inset-left, 0px)); width: 236px; gap: 6px; max-height: calc(100vh - 70px); }
+body.compact .brand { padding: 6px 10px; }
+body.compact .logo { font-size: 14px; }
+body.compact .clock { margin-top: 2px; }
+body.compact .clock #clock { font-size: 15px; }
+body.compact:not(.info-open) .brand .stats, body.compact:not(.info-open) .wx, body.compact:not(.info-open) .feed, body.compact:not(.info-open) .legend { display: none; }
+body.compact .feed { font-size: 12px; }
+body.compact .legend { bottom: 62px; right: calc(10px + env(safe-area-inset-right, 0px)); }
+body.compact .usage { top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); width: 200px; padding: 6px 10px; }
+body.compact .usage h2, body.compact #u-src, body.compact .meter small { display: none; }
+body.compact .meter { margin-bottom: 2px; }
+body.compact .meter .row { font-size: 11px; }
+body.compact .meter .row b { font-size: 15px; }
+body.compact .bar { height: 5px; margin: 1px 0 3px; }
+body.compact .panel { top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); width: 290px; max-height: calc(100vh - 70px); z-index: 11; }
+body.compact .music { right: calc(10px + env(safe-area-inset-right, 0px)); bottom: 62px; width: 250px; padding: 8px 10px; border-radius: 16px; }
+body.compact .music::after { content: ""; position: absolute; right: 64px; bottom: -7px; width: 12px; height: 12px; background: var(--card); transform: rotate(45deg);
+  border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+body.compact .music h2 { display: none; }
+body.compact .music .ctl button { padding: 6px; }
+body.compact .report { top: 8px; max-height: calc(100vh - 16px); }
+body.compact .unlock input { padding: 4px 8px; }
 
 /* installed as an app: keep clear of the notch and home bar */
 @supports (padding: env(safe-area-inset-top)) {

@@ -87,9 +87,11 @@ node scripts/install-hooks.mjs --remove   # takes them out again
 
 Each hook POSTs its event to `127.0.0.1:4717/api/hook` in the background, with a 2 s timeout, so Claude never waits. The office then reacts at once instead of a few seconds later, and it can tell when a session is stuck on a permission prompt, which the transcript never shows. Without the hooks everything still works from the transcripts.
 
-## Install it as an app
+## Install it as an app, full screen, phones sideways
 
-On a phone: open the site and choose **Add to Home Screen**. On a desktop in Chrome or Edge: use the install icon in the address bar. It opens full screen, and the last copy opens offline.
+- **Install app** in the ribbon: Chrome, Edge and Samsung Internet install it straight away; on iPhone and iPad it explains Share → Add to Home Screen, in Safari on the Mac File → Add to Dock. Installed, it opens without the browser bars (full screen on Android), and the last copy opens offline.
+- **⛶ Full screen** toggles full screen (iPhone Safari has none for pages: use the Home Screen app).
+- **Phones held sideways** (touch, landscape, under 520 px tall: Galaxy S23 Ultra, iPhone 15 Pro...) get a compact layout: the brand and usage shrink to small cards, and round buttons bottom right hold the rest: ⛶ full screen, **i** activity and details, ♫ Spotify as a small bubble, ☰ the ribbon (which closes again after you pick a view). Tablets such as the Xiaomi Pad 6 and every desktop keep the full layout.
 
 ## The careers fair
 
