@@ -54,6 +54,16 @@ To change the password: `printf 'new-password' | npx wrangler secret put VIEW_PA
 
 A second building for your own project, next door. It is described in `private/hq.json`, which git ignores, so its name, features and code paths never reach the public repo or the demo: it only appears on the Mac's own page and in the unlocked live view. Each feature gets an office and a member of staff who works when a session touches its files; there are vacant "now hiring" rooms, an HR wing (plugins, MCP servers and repos, weekly), a mail cart for new commits, a weekly heat map and links to the code.
 
+## Spotify account
+
+Without an account the Spotify card follows the Spotify app on this Mac (AppleScript). Connect your account to see what you play on any device (phone, speaker, web player), with album art and progress; controls need Spotify Premium.
+
+1. At https://developer.spotify.com/dashboard create an app (Web API). Redirect URI: `http://127.0.0.1:4717/api/spotify/callback`.
+2. Put its Client ID in `~/.config/clawd-mifflin/config.json` as `"spotifyClientId": "..."` and restart the server (`launchctl kickstart -k gui/$(id -u)/dev.clawd-mifflin`).
+3. On the Mac's page open ♫ Spotify → **Connect your Spotify account**.
+
+The sign-in uses PKCE (no client secret). Tokens stay in `~/.config/clawd-mifflin/spotify.json` (mode 600); **Disconnect Spotify** deletes them.
+
 ## Daily digest (Telegram)
 
 Make a bot with @BotFather, send it a message, then add to `~/.config/clawd-mifflin/config.json`:

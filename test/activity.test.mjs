@@ -227,3 +227,19 @@ test('the daily digest reads like a summary', () => {
   assert.match(t, /weekly 50%/);
   assert.match(t, /Red builds: Deploy/);
 });
+
+import { pkceChallenge, playerInfo } from '../server.mjs';
+
+test('Spotify: the PKCE challenge and the player answer', () => {
+  // RFC 7636, appendix B
+  assert.equal(pkceChallenge('dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk'), 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM');
+  const m = playerInfo({
+    is_playing: true, progress_ms: 61000, device: { name: 'iPhone' },
+    item: { name: 'Song', duration_ms: 200000, artists: [{ name: 'A' }, { name: 'B' }], album: { name: 'LP', images: [{ url: 'https://i/640', width: 640 }, { url: 'https://i/300', width: 300 }] }, external_urls: { spotify: 'https://open.spotify.com/track/x' } },
+  });
+  assert.equal(m.artist, 'A, B');
+  assert.equal(m.art, 'https://i/300');
+  assert.equal(m.device, 'iPhone');
+  assert.equal(m.playing, true);
+  assert.deepEqual(playerInfo(null), { connected: true, running: false, playing: false });
+});

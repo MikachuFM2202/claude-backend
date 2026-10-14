@@ -62,14 +62,19 @@
 <section class="card music" id="music" hidden aria-label="Spotify">
   <button class="x" id="music-close" aria-label="Close">&times;</button>
   <h2>Spotify</h2>
-  <div id="m-track" class="track"></div>
-  <small id="m-state" class="muted"></small>
+  <div class="now">
+    <img id="m-art" alt="" hidden>
+    <div class="meta"><div id="m-track" class="track"></div><small id="m-artist" class="muted"></small><small id="m-state" class="muted"></small></div>
+  </div>
+  <div class="prog" id="m-prog" hidden><i></i></div>
   <div class="ctl">
     <button data-cmd="previous" aria-label="Previous track" title="Previous">&#x23EE;</button>
     <button data-cmd="playpause" aria-label="Play or pause" title="Play / pause">&#x23EF;</button>
     <button data-cmd="next" aria-label="Next track" title="Next">&#x23ED;</button>
   </div>
+  <small id="m-error" class="err-text" hidden></small>
   <small id="m-note" class="muted">Controls work on the Mac's own page (127.0.0.1:4717). <a href="https://open.spotify.com" target="_blank" rel="noopener">Open Spotify</a></small>
+  <div class="acct" id="m-acct" hidden><a id="m-connect" href="api/spotify/login">Connect your Spotify account</a><button id="m-disconnect" hidden>Disconnect Spotify</button></div>
 </section>
 
 <section class="card report" id="report" hidden aria-label="Weekly report">

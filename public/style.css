@@ -128,6 +128,15 @@ h2 { margin: 0 0 6px; font-size: 11px; letter-spacing: 0.08em; text-transform: u
 a { color: var(--clawd); }
 .music { right: 12px; bottom: var(--bottom); width: 260px; z-index: 8; } /* above the character panel */
 .music .x { position: absolute; right: 8px; top: 4px; border: 0; background: none; font-size: 20px; cursor: pointer; color: var(--muted); }
+.music .now { display: flex; gap: 10px; align-items: center; }
+.music .now img { width: 56px; height: 56px; border-radius: 6px; object-fit: cover; flex: none; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); }
+.music .meta { min-width: 0; display: grid; }
+.music .meta small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.music .prog { height: 4px; border-radius: 99px; background: var(--line); margin-top: 8px; overflow: hidden; }
+.music .prog i { display: block; height: 100%; width: 0; background: #1DB954; }
+.music .err-text { color: var(--bad); display: block; }
+.music .acct { margin-top: 6px; font-size: 12px; }
+.music .acct button { border: 0; background: none; color: var(--muted); text-decoration: underline; font: inherit; cursor: pointer; padding: 0; }
 .music .track { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .music .ctl { display: flex; gap: 8px; margin: 8px 0 4px; }
 .music .ctl button { flex: 1; border: 0; border-radius: 9px; padding: 8px; font-size: 16px; background: #1DB954; color: #fff; cursor: pointer; }

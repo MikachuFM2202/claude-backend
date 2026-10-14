@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { execFile } from 'node:child_process';
+import { createHash, randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -928,14 +929,77 @@ function wlLinks() {
   return wlLinkCache;
 }
 
-// ------------------------------------------------------------------ Spotify on this Mac (AppleScript; asks for permission once)
+// ------------------------------------------------------------------ Spotify: your account (Web API), or the Mac app (AppleScript)
+// Connected (Authorization Code with PKCE, no client secret): what you play on any device, phone included, with
+// album art; controls need Spotify Premium. Not connected: the Spotify app on this Mac, through AppleScript.
+// Tokens live in ~/.config/clawd-mifflin/spotify.json (mode 600) and never leave this process.
+const SPOTIFY_FILE = path.join(os.homedir(), '.config/clawd-mifflin/spotify.json');
+const SPOTIFY_REDIRECT = `http://127.0.0.1:${PORT}/api/spotify/callback`;
+const SPOTIFY_SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
+let spotifyAuth = readJson(SPOTIFY_FILE);
+const spotifyClient = () => PUSH?.spotifyClientId || spotifyAuth?.clientId;
+const pkcePending = new Map(); // state -> { verifier, at }
+export function pkceChallenge(verifier) {
+  return createHash('sha256').update(verifier).digest('base64url');
+}
+function spotifySave(a) {
+  spotifyAuth = a;
+  fs.mkdirSync(path.dirname(SPOTIFY_FILE), { recursive: true });
+  if (a) fs.writeFileSync(SPOTIFY_FILE, JSON.stringify(a), { mode: 0o600 });
+  else fs.rmSync(SPOTIFY_FILE, { force: true });
+}
+async function spotifyToken(body) {
+  const r = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body), signal: AbortSignal.timeout(10000),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error_description || j.error || `HTTP ${r.status}`);
+  return j;
+}
+async function spotifyAccess() {
+  if (!spotifyAuth?.refreshToken) return null;
+  if (spotifyAuth.accessToken && Date.now() < spotifyAuth.expiresAt - 60000) return spotifyAuth.accessToken;
+  try {
+    const j = await spotifyToken({ grant_type: 'refresh_token', refresh_token: spotifyAuth.refreshToken, client_id: spotifyAuth.clientId });
+    spotifySave({ ...spotifyAuth, accessToken: j.access_token, expiresAt: Date.now() + j.expires_in * 1000, refreshToken: j.refresh_token || spotifyAuth.refreshToken });
+    return spotifyAuth.accessToken;
+  } catch (e) {
+    if (/invalid_grant|revoked/i.test(e.message)) spotifySave(null); // access was removed in Spotify: back to the Mac app
+    return null;
+  }
+}
+async function spotifyApi(method, p) {
+  const token = await spotifyAccess();
+  if (!token) return { status: 401 };
+  const r = await fetch(`https://api.spotify.com/v1${p}`, { method, headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) });
+  const text = await r.text();
+  let j = null; try { j = text ? JSON.parse(text) : null; } catch { /* empty */ }
+  return { status: r.status, j };
+}
+/** Pure: Spotify's player answer -> what the office shows. Exported for the test. */
+export function playerInfo(j) {
+  if (!j?.item) return { connected: true, running: !!j?.device, playing: false };
+  const it = j.item, art = it.album?.images || it.images || [];
+  return {
+    connected: true, running: true, playing: !!j.is_playing, track: it.name,
+    artist: (it.artists || []).map((a) => a.name).join(', ') || it.show?.name || '', album: it.album?.name,
+    art: (art.find((i) => i.width <= 320) || art[0])?.url, url: it.external_urls?.spotify,
+    device: j.device?.name, progress: j.progress_ms, duration: it.duration_ms, at: Date.now(),
+  };
+}
 const SPOTIFY = 'application id "com.spotify.client"';
 const osa = (lines) => new Promise((resolve) => execFile('osascript', lines.flatMap((l) => ['-e', l]), { timeout: 4000 }, (err, out) => resolve(err ? null : String(out).trim())));
 let musicCache = { at: 0, data: null };
 async function music(fresh = false) {
-  if (process.platform !== 'darwin' || !control.live) return null;
+  if (!control.live) return null;
   if (!fresh && Date.now() - musicCache.at < 5000) return musicCache.data;
   musicCache.at = Date.now();
+  if (spotifyAuth?.refreshToken) {
+    const r = await spotifyApi('GET', '/me/player?additional_types=episode');
+    if (r.status === 200 || r.status === 204) return (musicCache.data = playerInfo(r.j));
+    if (r.status !== 401) return musicCache.data; // a hiccup: keep the last answer
+  }
+  if (process.platform !== 'darwin') return (musicCache.data = null);
   // "is running" is answered without launching Spotify, so a closed Spotify stays closed
   const out = await osa([`if ${SPOTIFY} is running then`, `tell ${SPOTIFY}`, 'try',
     'return (player state as text) & tab & (name of current track) & tab & (artist of current track) & tab & (spotify url of current track)',
@@ -1118,18 +1182,52 @@ if (process.argv.includes('--snapshot')) {
       }, 400);
       res.writeHead(204); return res.end();
     }
+    if (url.pathname === '/api/spotify/login') {
+      const clientId = spotifyClient();
+      if (!clientId) { res.writeHead(400, { 'content-type': 'text/plain' }); return res.end('Add spotifyClientId to ~/.config/clawd-mifflin/config.json first (see the README).'); }
+      const verifier = randomBytes(48).toString('base64url'), state = randomBytes(16).toString('hex');
+      pkcePending.set(state, { verifier, clientId, at: Date.now() });
+      const q = new URLSearchParams({ client_id: clientId, response_type: 'code', redirect_uri: SPOTIFY_REDIRECT, scope: SPOTIFY_SCOPES, state, code_challenge_method: 'S256', code_challenge: pkceChallenge(verifier) });
+      res.writeHead(302, { location: `https://accounts.spotify.com/authorize?${q}` });
+      return res.end();
+    }
+    if (url.pathname === '/api/spotify/callback') {
+      const p = pkcePending.get(url.searchParams.get('state'));
+      pkcePending.delete(url.searchParams.get('state'));
+      let msg = 'Spotify is connected.';
+      if (!p || Date.now() - p.at > 10 * 60e3) msg = 'That sign-in link expired: try Connect again.';
+      else if (url.searchParams.get('error')) msg = `Spotify said: ${url.searchParams.get('error')}`;
+      else {
+        try {
+          const j = await spotifyToken({ grant_type: 'authorization_code', code: url.searchParams.get('code'), redirect_uri: SPOTIFY_REDIRECT, client_id: p.clientId, code_verifier: p.verifier });
+          spotifySave({ clientId: p.clientId, accessToken: j.access_token, refreshToken: j.refresh_token, expiresAt: Date.now() + j.expires_in * 1000 });
+          musicCache.at = 0; stateCache.at = 0;
+        } catch (e) { msg = `Could not connect: ${e.message}`; }
+      }
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      return res.end(`<!doctype html><meta charset="utf-8"><title>Spotify</title><body style="font:16px system-ui;padding:40px"><p>${msg.replace(/[<>&]/g, '')}</p><p><a href="/">Back to the office</a></p><script>setTimeout(()=>location.href='/',1500)</script>`);
+    }
     if (url.pathname === '/api/spotify') {
+      let error = null;
       if (req.method === 'POST') {
         let body = '';
         for await (const chunk of req) { body += chunk; if (body.length > 1000) break; }
-        let cmd; try { cmd = SPOTIFY_CMD[JSON.parse(body).cmd]; } catch { /* checked below */ }
-        if (!cmd) { res.writeHead(400); return res.end(); }
-        await osa([`tell ${SPOTIFY} to ${cmd}`]);
-        await new Promise((r) => setTimeout(r, 350));
+        let cmd; try { cmd = JSON.parse(body).cmd; } catch { /* checked below */ }
+        if (cmd === 'disconnect') spotifySave(null);
+        else if (!SPOTIFY_CMD[cmd]) { res.writeHead(400); return res.end(); }
+        else if (spotifyAuth?.refreshToken) {
+          const now = await music(true);
+          const [method, p] = cmd === 'next' ? ['POST', '/me/player/next'] : cmd === 'previous' ? ['POST', '/me/player/previous'] : now?.playing ? ['PUT', '/me/player/pause'] : ['PUT', '/me/player/play'];
+          const r = await spotifyApi(method, p);
+          if (r.status === 403) error = 'Controls need Spotify Premium.';
+          else if (r.status === 404) error = 'No active device: start playing somewhere first.';
+          else if (r.status >= 400) error = r.j?.error?.message || `Spotify said HTTP ${r.status}`;
+        } else await osa([`tell ${SPOTIFY} to ${SPOTIFY_CMD[cmd]}`]);
+        await new Promise((r) => setTimeout(r, 400));
         stateCache.at = 0;
       }
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-      return res.end(JSON.stringify(await music(true)));
+      return res.end(JSON.stringify({ ...(await music(true)), canConnect: !!spotifyClient(), error }));
     }
     if (url.pathname === '/api/stream') {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' });

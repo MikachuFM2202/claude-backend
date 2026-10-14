@@ -259,23 +259,47 @@ const radio = (() => {
 })();
 let musicNow = null;
 function renderMusic(m) {
+  if (m && musicNow?.canConnect !== undefined && m.canConnect === undefined) m = { ...m, canConnect: musicNow.canConnect };
   musicNow = m;
   ctx.music = !!m?.playing;
   radio.o.visible = !!m?.playing;
   if (m?.playing) radio.el.textContent = `♪ ${m.track} · ${m.artist}`;
   $('spotify').classList.toggle('playing', !!m?.playing);
-  const t = $('m-track');
-  t.replaceChildren(!m ? 'Live updates are off' : !m.running ? 'Spotify is closed' : m.track ? (safeUrl(m.url) ? linkTo(m.url, `${m.track} · ${m.artist}`) : `${m.track} · ${m.artist}`) : 'Nothing queued');
-  $('m-state').textContent = m?.running ? (m.playing ? 'playing on the Mac' : 'paused on the Mac') : '';
+  const where = m?.connected ? (m.device ? `on ${m.device}` : '') : 'on the Mac';
+  $('m-track').replaceChildren(!m ? 'Live updates are off' : !m.running ? (m.connected ? 'Nothing playing' : 'Spotify is closed') : m.track ? (safeUrl(m.url) ? linkTo(m.url, m.track) : m.track) : 'Nothing queued');
+  $('m-artist').textContent = m?.track ? [m.artist, m.album].filter(Boolean).join(' · ') : '';
+  $('m-state').textContent = m?.running && m.track ? `${m.playing ? 'playing' : 'paused'} ${where}`.trim() : '';
+  $('m-art').hidden = !safeUrl(m?.art);
+  if (safeUrl(m?.art) && $('m-art').src !== m.art) $('m-art').src = m.art;
+  $('m-prog').hidden = !m?.duration;
   const local = source === 'local';
   document.querySelectorAll('#music [data-cmd]').forEach((b) => (b.disabled = !local));
   $('m-note').hidden = local;
+  $('m-acct').hidden = !local;
+  $('m-connect').hidden = !!m?.connected;
+  $('m-disconnect').hidden = !m?.connected;
+  $('m-error').hidden = !m?.error;
+  $('m-error').textContent = m?.error || '';
 }
-document.querySelectorAll('#music [data-cmd]').forEach((b) => (b.onclick = async () => {
-  const r = await fetch('api/spotify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ cmd: b.dataset.cmd }) }).catch(() => null);
+// the progress bar moves between updates
+setInterval(() => {
+  const m = musicNow;
+  if (!m?.duration || $('music').hidden) return;
+  const p = Math.min(m.duration, (m.progress || 0) + (m.playing ? Date.now() - m.at : 0));
+  $('m-prog').firstElementChild.style.width = `${(p / m.duration) * 100}%`;
+}, 500);
+const spotifyCall = async (cmd) => {
+  const r = await fetch('api/spotify', cmd ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ cmd }) } : {}).catch(() => null);
   if (r?.ok) renderMusic(await r.json());
-}));
-$('spotify').onclick = () => { $('music').hidden = !$('music').hidden; if (!$('music').hidden) renderMusic(musicNow); };
+};
+document.querySelectorAll('#music [data-cmd]').forEach((b) => (b.onclick = () => spotifyCall(b.dataset.cmd)));
+$('m-disconnect').onclick = () => spotifyCall('disconnect');
+$('spotify').onclick = () => {
+  $('music').hidden = !$('music').hidden;
+  if ($('music').hidden) return;
+  renderMusic(musicNow);
+  if (source === 'local') spotifyCall(); // fresh, and whether an account can be connected
+};
 $('music-close').onclick = () => ($('music').hidden = true);
 $('panel-close').onclick = () => { $('panel').hidden = true; ctx.selected = null; };
 
