@@ -652,14 +652,20 @@ document.addEventListener('webkitfullscreenchange', fsChanged);
 $('fullscreen').onclick = toggleFullscreen;
 $('fab-full').onclick = toggleFullscreen;
 // Chrome, Edge and Samsung Internet offer an install prompt; Safari installs from its own menus
-let installPrompt = null;
-addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; $('install').hidden = false; });
+let installPrompt = window.installPrompt || null;
+addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; });
 addEventListener('appinstalled', () => { installPrompt = null; $('install').hidden = true; tip('Installed: open Clawd Mifflin from your apps.'); });
 const safari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
-if (!standalone() && (isIOS || safari)) $('install').hidden = false;
+// always offered unless it is already running as the installed app; where the browser has no prompt, it explains how
+$('install').hidden = standalone();
+const android = /Android/i.test(navigator.userAgent), samsung = /SamsungBrowser/i.test(navigator.userAgent);
 $('install').onclick = async () => {
   if (installPrompt) { installPrompt.prompt(); await installPrompt.userChoice.catch(() => null); installPrompt = null; $('install').hidden = true; return; }
-  tip(isIOS ? 'To install: tap Share (the square with the arrow) → Add to Home Screen.' : safari ? 'To install: File → Add to Dock (Safari 17 or later).' : 'Use the install icon in the address bar, or the browser menu → Install app.', 9);
+  tip(isIOS ? 'To install: tap Share (the square with the arrow) → Add to Home Screen.'
+    : safari ? 'To install: File → Add to Dock (Safari 17 or later).'
+      : samsung ? 'To install: menu (☰) → Add page to → Home screen.'
+        : android ? 'To install: menu (⋮) → Add to Home screen → Install.'
+          : 'To install: the install icon at the right end of the address bar, or menu (⋮) → Cast, save and share → Install page as app. Already installed? Open it from your apps.', 10);
 };
 $('time').oninput = (e) => {
   timeCtl.override = Number(e.target.value);

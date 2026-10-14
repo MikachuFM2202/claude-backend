@@ -14,6 +14,8 @@
 <meta name="apple-mobile-web-app-title" content="Clawd Mifflin">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="style.css">
+<!-- the install prompt can fire before the app has loaded: keep it -->
+<script>addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.installPrompt = e; });</script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
