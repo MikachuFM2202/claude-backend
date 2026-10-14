@@ -1,0 +1,17 @@
+{
+  "name": "Clawd Mifflin",
+  "short_name": "Clawd Mifflin",
+  "description": "A live 3D office where your Claude Code plugins, MCP servers, tools and memory work as characters.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#f4efe8",
+  "theme_color": "#d97757",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

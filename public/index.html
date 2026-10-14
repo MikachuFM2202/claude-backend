@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clawd Mifflin</title>
+<meta name="description" content="A live 3D office where your Claude Code plugins, MCP servers, tools and memory work as characters.">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#d97757">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Clawd Mifflin">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="scene"></div>
+
+<div class="left">
+<header class="card brand">
+  <div class="logo">Clawd Mifflin</div>
+  <div class="sub">Kuala Lumpur Branch &middot; <span id="mode" class="pill">connecting</span></div>
+  <div class="clock"><span id="clock">--:--</span> <small>MYT / SGT</small> <span id="phase"></span></div>
+  <div class="wx" id="wx" title="Kuala Lumpur weather, from Open-Meteo"></div>
+  <div class="stats" id="stats"></div>
+  <form id="unlock" class="unlock" hidden>
+    <input type="password" id="pass" placeholder="Password for the live view" autocomplete="current-password" aria-label="Password for the live view">
+    <button type="submit" title="Unlock the live view" aria-label="Unlock the live view"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Zm-7-2a2 2 0 1 1 4 0v2h-4V7Zm2 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z"/></svg></button>
+    <small id="unlock-msg" class="muted"></small>
+  </form>
+  <button id="lock" class="iconbtn" hidden title="Live view unlocked. Click to lock it again." aria-label="Lock the live view"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M17 9h-7V7a2 2 0 0 1 3.9-.6 1 1 0 1 0 1.9-.6A4 4 0 0 0 8 7v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Zm-5 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z"/></svg><span>Unlocked</span></button>
+</header>
+
+
+
+<section class="card feed" aria-label="Activity">
+  <h2>Activity</h2>
+  <ol id="feed"></ol>
+</section>
+</div>
+
+<section class="card usage" aria-label="Claude usage">
+  <h2>Claude plan usage</h2>
+  <div class="meter"><div class="row"><span>Session (5 h)</span><b id="u-session">--</b></div><div class="bar"><i id="b-session"></i></div><small id="r-session"></small></div>
+  <div class="meter"><div class="row"><span>Weekly</span><b id="u-weekly">--</b></div><div class="bar"><i id="b-weekly"></i></div><small id="r-weekly"></small></div>
+  <small id="u-src" class="muted"></small>
+</section>
+
+<aside class="card panel" id="panel" hidden>
+  <button class="x" id="panel-close" aria-label="Close">&times;</button>
+  <div id="panel-body"></div>
+</aside>
+
+<section class="card music" id="music" hidden aria-label="Spotify">
+  <button class="x" id="music-close" aria-label="Close">&times;</button>
+  <h2>Spotify</h2>
+  <div id="m-track" class="track"></div>
+  <small id="m-state" class="muted"></small>
+  <div class="ctl">
+    <button data-cmd="previous" aria-label="Previous track" title="Previous">&#x23EE;</button>
+    <button data-cmd="playpause" aria-label="Play or pause" title="Play / pause">&#x23EF;</button>
+    <button data-cmd="next" aria-label="Next track" title="Next">&#x23ED;</button>
+  </div>
+  <small id="m-note" class="muted">Controls work on the Mac's own page (127.0.0.1:4717). <a href="https://open.spotify.com" target="_blank" rel="noopener">Open Spotify</a></small>
+</section>
+
+<section class="card report" id="report" hidden aria-label="Weekly report">
+  <button class="x" id="report-close" aria-label="Close">&times;</button>
+  <div id="report-body"></div>
+  <button id="report-copy" class="copy">Copy as text</button>
+  <button id="digest" class="copy" hidden title="Send today's digest to Telegram now">Send today's digest</button>
+  <small id="digest-msg" class="muted"></small>
+</section>
+<div id="flash"></div>
+
+<nav class="card dock">
+  <button data-zone="overview">Overview</button>
+  <button data-zone="boss">Boss</button>
+  <button data-zone="open">Open office</button>
+  <button data-zone="mcp">MCP wing</button>
+  <button data-zone="break">Break room</button>
+  <button data-zone="hr">HR</button>
+  <button data-zone="archive">Records</button>
+  <button data-zone="rec">Rec room</button>
+  <button data-zone="fair">Careers fair</button>
+  <button data-zone="lab">BIM lab</button>
+  <button data-zone="term">Terminals</button>
+  <button data-zone="branch" hidden>Branches</button>
+  <button data-zone="wl" hidden>HQ</button>
+  <button data-zone="wlhr" hidden>HQ HR</button>
+  <button data-zone="city">City view</button>
+  <button id="refresh" title="Fetch the latest activity and usage now">&#x21bb; Refresh</button>
+  <button id="report-btn" title="This week in numbers">&#x1F4CA; Report</button>
+  <button id="spotify" title="Spotify on the Mac">&#9835; Spotify</button>
+  <button id="timelapse" title="Play back today and save it as a video">&#x23FA; Time-lapse</button>
+  <button id="replay" title="Play back today's work in 90 seconds">&#x25B6; Replay</button>
+  <button id="live" class="switch" role="switch" aria-checked="true" title="Live updates. Off: nothing is fetched or sent; the office keeps going on its own."><i></i><span>Live</span></button>
+  <button id="sound" class="switch" role="switch" aria-checked="false" title="Office sounds: typing, coffee, ping pong, alerts"><i></i><span>Sound</span></button>
+  <button id="alerts" class="switch" role="switch" aria-checked="false" title="Desktop notification when a Claude is waiting for you"><i></i><span>Alerts</span></button>
+  <span class="sep"></span>
+  <label class="time">Time <input type="range" id="time" min="-1" max="24" step="0.25" value="-1"><span id="time-label">auto</span></label>
+</nav>
+
+<div class="legend card" id="legend"></div>
+<div id="loading">
+  <div id="loading-text">Hiring staff&hellip;</div>
+  <form id="gate" class="gate" hidden>
+    <div class="logo">Clawd Mifflin</div>
+    <p class="muted">A 3D office where Claude Code's tools work as characters. Enter the password to come in.</p>
+    <input type="password" id="gate-pass" placeholder="Password" autocomplete="current-password" aria-label="Password" required>
+    <button type="submit">Come in</button>
+    <small id="gate-msg" class="muted" role="status"></small>
+  </form>
+</div>
+<script type="module" src="app.js"></script>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});</script>
+</body>
+</html>

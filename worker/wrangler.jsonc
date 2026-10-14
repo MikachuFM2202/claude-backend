@@ -1,0 +1,9 @@
+{
+  "name": "clawd-mifflin",
+  "main": "index.js",
+  "compatibility_date": "2026-09-01",
+  "durable_objects": { "bindings": [{ "name": "OFFICE", "class_name": "Office" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Office"] }],
+  "vars": { "ALLOWED_ORIGINS": "https://mikachufm2202.github.io,http://127.0.0.1:4717" }
+  // secrets: PUSH_TOKEN (the Mac's server), VIEW_PASSWORD (people watching)
+}

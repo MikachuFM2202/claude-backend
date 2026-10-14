@@ -1,0 +1,12 @@
+{
+  "name": "clawd-mifflin",
+  "private": true,
+  "type": "module",
+  "description": "A live 3D office where your Claude Code plugins, MCP servers, tools and memory work as characters.",
+  "scripts": {
+    "start": "node server.mjs",
+    "snapshot": "node server.mjs --snapshot",
+    "test": "node --test test/*.test.mjs",
+    "models": "/Applications/Blender.app/Contents/MacOS/Blender -b -P blender/build_cast.py -- public/cast.json public/models/cast.glb docs/cast.png"
+  }
+}

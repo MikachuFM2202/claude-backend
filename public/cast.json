@@ -1,0 +1,704 @@
+{
+ "vendors": {
+  "anthropic": {
+   "label": "Anthropic",
+   "color": "#D97757"
+  },
+  "microsoft": {
+   "label": "Microsoft",
+   "color": "#2EAD33"
+  },
+  "upstash": {
+   "label": "Upstash",
+   "color": "#00C389"
+  },
+  "expo": {
+   "label": "Expo",
+   "color": "#1B1F3B"
+  },
+  "julius": {
+   "label": "Julius Brussee",
+   "color": "#8B5A2B"
+  },
+  "dietrich": {
+   "label": "Dietrich Gebert",
+   "color": "#9B59B6"
+  },
+  "nextlevel": {
+   "label": "nextlevelbuilder",
+   "color": "#FF5FA2"
+  },
+  "unity": {
+   "label": "Unity",
+   "color": "#4A4A4A"
+  },
+  "figma": {
+   "label": "Figma",
+   "color": "#A259FF"
+  },
+  "zoom": {
+   "label": "Zoom",
+   "color": "#2D8CFF"
+  },
+  "google": {
+   "label": "Google",
+   "color": "#EA4335"
+  },
+  "google-drive": {
+   "label": "Google",
+   "color": "#F4B400"
+  },
+  "canva": {
+   "label": "Canva",
+   "color": "#00C4CC"
+  },
+  "cloudflare": {
+   "label": "Cloudflare",
+   "color": "#F38020"
+  },
+  "microsoft365": {
+   "label": "Microsoft",
+   "color": "#0078D4"
+  },
+  "other": {
+   "label": "Third party",
+   "color": "#7A8B99"
+  },
+  "anthropic-plugins": {
+   "label": "Anthropic",
+   "color": "#D97757"
+  }
+ },
+ "characters": [
+  {
+   "id": "claude",
+   "name": "Claude",
+   "title": "Regional Manager",
+   "kind": "boss",
+   "vendor": "anthropic",
+   "acc": [
+    "tie",
+    "mug"
+   ],
+   "core": true,
+   "bio": "The main agent. Works whenever any Claude Code session is thinking or answering.",
+   "lines": [
+    "Would I rather be feared or loved? Easy. Helpful.",
+    "I am running on pure caffeine and context.",
+    "Conference room, five minutes!",
+    "That's what the user said."
+   ]
+  },
+  {
+   "id": "bash",
+   "name": "Bash",
+   "title": "Terminal Operator",
+   "kind": "core",
+   "vendor": "anthropic",
+   "acc": [
+    "cap"
+   ],
+   "core": true,
+   "bio": "Runs shell commands (the Bash tool).",
+   "lines": [
+    "rm -rf? Not on my watch.",
+    "It works on my machine."
+   ]
+  },
+  {
+   "id": "reader",
+   "name": "Reader",
+   "title": "Research Clerk",
+   "kind": "core",
+   "vendor": "anthropic",
+   "acc": [
+    "glasses"
+   ],
+   "core": true,
+   "bio": "Read, Grep and Glob. Reads every file before anyone touches it.",
+   "lines": [
+    "Did you read line 42?",
+    "Grep is my cardio."
+   ]
+  },
+  {
+   "id": "editor",
+   "name": "Editor",
+   "title": "Code Editor",
+   "kind": "core",
+   "vendor": "anthropic",
+   "acc": [
+    "pencil"
+   ],
+   "core": true,
+   "bio": "Edit and Write. Turns plans into diffs.",
+   "lines": [
+    "Smallest diff wins.",
+    "I don't refactor, I improve."
+   ]
+  },
+  {
+   "id": "web",
+   "name": "Web",
+   "title": "Field Scout",
+   "kind": "core",
+   "vendor": "anthropic",
+   "acc": [
+    "antenna"
+   ],
+   "core": true,
+   "bio": "WebSearch and WebFetch. Brings news from outside.",
+   "lines": [
+    "Searching the interwebs...",
+    "Found it on page one."
+   ]
+  },
+  {
+   "id": "agent",
+   "name": "Subagent",
+   "title": "Intern Pool",
+   "kind": "core",
+   "vendor": "anthropic",
+   "acc": [
+    "propeller"
+   ],
+   "core": true,
+   "bio": "Explore, Plan and general-purpose subagents that Claude sends out.",
+   "lines": [
+    "Is this a paid internship?",
+    "Delegated again!"
+   ]
+  },
+  {
+   "id": "tasks",
+   "name": "Tasks",
+   "title": "Assistant to the Manager",
+   "kind": "core",
+   "vendor": "anthropic",
+   "acc": [
+    "clipboard"
+   ],
+   "core": true,
+   "bio": "TaskCreate / TodoWrite. Keeps the to-do list honest.",
+   "lines": [
+    "Assistant TO the manager.",
+    "Item three: done."
+   ]
+  },
+  {
+   "id": "artifact",
+   "name": "Artifact",
+   "title": "Graphic Designer",
+   "kind": "core",
+   "vendor": "anthropic",
+   "acc": [
+    "beret"
+   ],
+   "core": true,
+   "bio": "Publishes HTML pages to claude.ai.",
+   "lines": [
+    "Needs more whitespace.",
+    "Ship it to a URL."
+   ]
+  },
+  {
+   "id": "memory",
+   "name": "Memory",
+   "title": "Records Archivist",
+   "kind": "archive",
+   "vendor": "anthropic",
+   "acc": [
+    "glasses",
+    "bowtie"
+   ],
+   "core": true,
+   "bio": "Keeps your memory files. Works when a session reads or writes a memory file.",
+   "lines": [
+    "I remember everything. Mostly.",
+    "Filed under feedback."
+   ]
+  },
+  {
+   "id": "hooks",
+   "name": "Hooks",
+   "title": "Security Desk",
+   "kind": "reception",
+   "vendor": "anthropic",
+   "acc": [
+    "policecap"
+   ],
+   "core": true,
+   "bio": "Your settings.json hooks plus plugin hooks. Fires on SessionStart, prompts and tool calls.",
+   "lines": [
+    "Badge, please.",
+    "Hook fired. All clear."
+   ]
+  },
+  {
+   "id": "hr",
+   "name": "Toby",
+   "title": "HR Representative",
+   "kind": "hr",
+   "vendor": "anthropic",
+   "acc": [
+    "lanyard",
+    "glasses"
+   ],
+   "core": true,
+   "bio": "Runs interviews for plugins and MCP servers worth hiring this week.",
+   "lines": [
+    "Let's keep this professional.",
+    "Next candidate, please."
+   ]
+  },
+  {
+   "id": "claude-security",
+   "name": "Claude Security",
+   "title": "Vulnerability Hunter",
+   "kind": "plugin",
+   "vendor": "anthropic",
+   "acc": [
+    "shield"
+   ]
+  },
+  {
+   "id": "security-guidance",
+   "name": "Security Guidance",
+   "title": "Compliance Officer",
+   "kind": "plugin",
+   "vendor": "anthropic",
+   "acc": [
+    "badge"
+   ]
+  },
+  {
+   "id": "code-simplifier",
+   "name": "Code Simplifier",
+   "title": "Efficiency Expert",
+   "kind": "plugin",
+   "vendor": "anthropic",
+   "acc": [
+    "scissors"
+   ]
+  },
+  {
+   "id": "frontend-design",
+   "name": "Frontend Design",
+   "title": "Art Director",
+   "kind": "plugin",
+   "vendor": "anthropic",
+   "acc": [
+    "paintbrush"
+   ],
+   "acc2": "#3A7BD5"
+  },
+  {
+   "id": "clangd-lsp",
+   "name": "clangd LSP",
+   "title": "C++ Mechanic",
+   "kind": "plugin",
+   "vendor": "anthropic",
+   "acc": [
+    "wrench"
+   ]
+  },
+  {
+   "id": "engineering",
+   "name": "Engineering",
+   "title": "Engineering Lead",
+   "kind": "plugin",
+   "vendor": "anthropic",
+   "acc": [
+    "hardhat"
+   ]
+  },
+  {
+   "id": "design",
+   "name": "Design",
+   "title": "Design Lead",
+   "kind": "plugin",
+   "vendor": "anthropic",
+   "acc": [
+    "beret"
+   ],
+   "acc2": "#2B2B2B"
+  },
+  {
+   "id": "productivity",
+   "name": "Productivity",
+   "title": "Office Manager",
+   "kind": "plugin",
+   "vendor": "anthropic",
+   "acc": [
+    "clipboard",
+    "glasses"
+   ]
+  },
+  {
+   "id": "cowork-plugin-management",
+   "name": "Plugin Mgmt",
+   "title": "Facilities",
+   "kind": "plugin",
+   "vendor": "anthropic",
+   "acc": [
+    "wrench",
+    "hardhat"
+   ]
+  },
+  {
+   "id": "caveman",
+   "name": "Caveman",
+   "title": "Brevity Consultant",
+   "kind": "plugin",
+   "vendor": "julius",
+   "acc": [
+    "club",
+    "wildhair"
+   ],
+   "lines": [
+    "Few word. Much meaning.",
+    "Me compress."
+   ]
+  },
+  {
+   "id": "ponytail",
+   "name": "Ponytail",
+   "title": "Lazy Senior Dev",
+   "kind": "plugin",
+   "vendor": "dietrich",
+   "acc": [
+    "ponytail"
+   ],
+   "lines": [
+    "Does this need to exist?",
+    "Delete it."
+   ]
+  },
+  {
+   "id": "ui-ux-pro-max",
+   "name": "UI/UX Pro Max",
+   "title": "Style Guru",
+   "kind": "plugin",
+   "vendor": "nextlevel",
+   "acc": [
+    "crown"
+   ]
+  },
+  {
+   "id": "unity",
+   "name": "Unity",
+   "title": "Game Dev",
+   "kind": "plugin",
+   "vendor": "unity",
+   "acc": [
+    "cube"
+   ]
+  },
+  {
+   "id": "security-audit",
+   "name": "Security Audit",
+   "title": "Auditor (skill)",
+   "kind": "skill",
+   "vendor": "anthropic",
+   "acc": [
+    "magnifier"
+   ]
+  },
+  {
+   "id": "playwright",
+   "name": "Playwright",
+   "title": "Browser Tester",
+   "kind": "mcp",
+   "vendor": "microsoft",
+   "acc": [
+    "mask"
+   ],
+   "lines": [
+    "Click. Click. Screenshot.",
+    "The page loaded. Eventually."
+   ]
+  },
+  {
+   "id": "context7",
+   "name": "Context7",
+   "title": "Librarian",
+   "kind": "mcp",
+   "vendor": "upstash",
+   "acc": [
+    "books"
+   ]
+  },
+  {
+   "id": "expo",
+   "name": "Expo",
+   "title": "Mobile Builder",
+   "kind": "mcp",
+   "vendor": "expo",
+   "acc": [
+    "chevron"
+   ]
+  },
+  {
+   "id": "figma",
+   "name": "Figma",
+   "title": "Design Bridge",
+   "kind": "mcp",
+   "vendor": "figma",
+   "acc": [
+    "paintbrush"
+   ],
+   "acc2": "#F24E1E"
+  },
+  {
+   "id": "claude-in-chrome",
+   "name": "Claude in Chrome",
+   "title": "Browser Pilot",
+   "kind": "mcp",
+   "vendor": "anthropic",
+   "acc": [
+    "goggles"
+   ],
+   "connector": true,
+   "url": "https://claude.com/chrome"
+  },
+  {
+   "id": "claude-docs",
+   "name": "Claude Docs",
+   "title": "Docs Writer",
+   "kind": "mcp",
+   "vendor": "anthropic",
+   "acc": [
+    "paperhat"
+   ],
+   "connector": true,
+   "url": "https://claude.ai"
+  },
+  {
+   "id": "gmail",
+   "name": "Gmail",
+   "title": "Mailroom",
+   "kind": "mcp",
+   "vendor": "google",
+   "acc": [
+    "envelope"
+   ],
+   "connector": true,
+   "url": "https://mail.google.com"
+  },
+  {
+   "id": "google-drive",
+   "name": "Google Drive",
+   "title": "File Clerk",
+   "kind": "mcp",
+   "vendor": "google-drive",
+   "acc": [
+    "folder"
+   ],
+   "connector": true,
+   "url": "https://drive.google.com"
+  },
+  {
+   "id": "canva",
+   "name": "Canva",
+   "title": "Layout Artist",
+   "kind": "mcp",
+   "vendor": "canva",
+   "acc": [
+    "paintbrush"
+   ],
+   "acc2": "#7D2AE8",
+   "connector": true,
+   "url": "https://www.canva.com"
+  },
+  {
+   "id": "cloudflare-developer-platform",
+   "name": "Cloudflare",
+   "title": "Infra Ops",
+   "kind": "mcp",
+   "vendor": "cloudflare",
+   "acc": [
+    "cloud"
+   ],
+   "connector": true,
+   "url": "https://developers.cloudflare.com"
+  },
+  {
+   "id": "microsoft-365",
+   "name": "Microsoft 365",
+   "title": "Office Liaison",
+   "kind": "mcp",
+   "vendor": "microsoft365",
+   "acc": [
+    "window"
+   ],
+   "connector": true,
+   "url": "https://www.microsoft.com/microsoft-365"
+  },
+  {
+   "id": "zoom-plugin",
+   "name": "Zoom",
+   "title": "Meetings",
+   "kind": "mcp",
+   "vendor": "zoom",
+   "acc": [
+    "headset"
+   ]
+  },
+  {
+   "id": "generic",
+   "name": "New Hire",
+   "title": "Unknown",
+   "kind": "plugin",
+   "vendor": "other",
+   "acc": []
+  }
+ ],
+ "donors": {
+  "development": "clangd-lsp",
+  "productivity": "tasks",
+  "database": "unity",
+  "monitoring": "claude-in-chrome",
+  "security": "claude-security",
+  "deployment": "cloudflare-developer-platform",
+  "design": "frontend-design",
+  "testing": "playwright",
+  "learning": "context7",
+  "automation": "agent",
+  "location": "google-drive",
+  "math": "reader",
+  "migration": "cowork-plugin-management",
+  "other": "web",
+  "MCP server": "claude-in-chrome",
+  "GitHub repo": "reader"
+ },
+ "fair": [
+  {
+   "id": "fair-terminal",
+   "name": "Terminal",
+   "sub": "everyday Claude Code",
+   "n": 6,
+   "plugins": {
+    "categories": [
+     "development",
+     "productivity",
+     "testing",
+     "security",
+     "automation"
+    ],
+    "n": 4,
+    "keywords": [
+     "git",
+     "github",
+     "commit",
+     "pull request",
+     "code review",
+     "terminal",
+     "shell",
+     "debugging",
+     "refactor",
+     "documentation",
+     "workflow",
+     "context",
+     "hooks"
+    ]
+   },
+   "mcp": [
+    "github",
+    "git",
+    "filesystem",
+    "sqlite",
+    "postgres",
+    "sandbox",
+    "memory",
+    "sequential thinking",
+    "docker"
+   ],
+   "repos": [
+    "claude code skills",
+    "claude code hooks",
+    "claude code statusline"
+   ]
+  },
+  {
+   "id": "fair-design",
+   "name": "Design",
+   "sub": "UI, UX and graphics",
+   "n": 6,
+   "plugins": {
+    "categories": [
+     "design"
+    ],
+    "n": 3,
+    "keywords": [
+     "design",
+     "figma",
+     "ui",
+     "ux",
+     "canva",
+     "image",
+     "video",
+     "brand",
+     "theme",
+     "miro",
+     "prototype",
+     "graphics"
+    ]
+   },
+   "mcp": [
+    "figma",
+    "penpot",
+    "excalidraw",
+    "canva",
+    "shadcn",
+    "icons",
+    "image generation",
+    "storybook"
+   ],
+   "repos": [
+    "design tokens",
+    "design system react native"
+   ]
+  },
+  {
+   "id": "fair-bim",
+   "name": "BIM",
+   "sub": "for the BIM engineer",
+   "n": 6,
+   "plugins": {
+    "categories": [
+     "location"
+    ],
+    "n": 2,
+    "keywords": [
+     "maps",
+     "geocoding",
+     "location",
+     "gis",
+     "geospatial",
+     "routing"
+    ]
+   },
+   "mcp": [
+    "revit",
+    "ifc",
+    "autocad",
+    "rhino",
+    "blender",
+    "speckle",
+    "navisworks",
+    "bim",
+    "grasshopper",
+    "qgis"
+   ],
+   "repos": [
+    "pyrevit",
+    "ifcopenshell",
+    "dynamo revit",
+    "speckle",
+    "revit api",
+    "bim viewer web",
+    "bim collaboration format"
+   ]
+  }
+ ]
+}
