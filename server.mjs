@@ -537,7 +537,7 @@ export function digestText(s, hqName = WL?.name) {
   const name = (id) => s.characters?.find((c) => c.id === id)?.name || id;
   const lines = [
     `Clawd Mifflin, ${new Date((s.now || Date.now()) + 8 * 3600e3).toISOString().slice(0, 10)}`,
-    `${calls} tool calls, ${fails} failed, ${(s.payroll || []).length} sessions, ${kilo(tokens)} tokens`,
+    `${calls} tool calls, ${fails} failed, ${(s.payroll || []).length} sessions, ${kilo(tokens)} tokens${s.cost ? ` (about $${s.cost.today.toFixed(2)} at API prices; $${s.cost.week.toFixed(2)} this week)` : ''}`,
     counts.length ? `Busiest: ${counts.slice(0, 4).map(([id, n]) => `${name(id)} ${n}`).join(', ')}` : 'A quiet day.',
   ];
   if (s.usage?.session || s.usage?.weekly) lines.push(`Usage: session ${Math.round(s.usage.session?.pct ?? 0)}%, weekly ${Math.round(s.usage.weekly?.pct ?? 0)}%`);
@@ -594,6 +594,127 @@ async function branches() {
     if (r.ok) branchCache.data = ((await r.json()).branches || []).filter((b) => b.machine !== PUSH.machine);
   } catch { /* keep the last list */ }
   return branchCache.data;
+}
+
+// ------------------------------------------------------------------ cost: what the tokens would cost at API prices
+// US dollars per million tokens: [input, 5-minute cache write, 1-hour cache write, cache read, output], from
+// platform.claude.com/docs/en/about-claude/pricing (October 2026). On a Claude plan you pay the plan, not this:
+// it is the API-price equivalent. Override or add models with "prices" in the config.
+const PRICES = {
+  'fable-5-1': [10, 12.5, 20, 0.25, 50], 'mythos-5-1': [10, 12.5, 20, 0.25, 50], 'fable-5': [10, 12.5, 20, 1, 50], 'mythos-5': [10, 12.5, 20, 1, 50],
+  'opus-5-5': [4, 5, 8, 0.2, 20], 'opus-5': [5, 6.25, 10, 0.5, 25], 'opus-4-8': [5, 6.25, 10, 0.5, 25], 'opus-4-7': [5, 6.25, 10, 0.5, 25],
+  'opus-4-6': [5, 6.25, 10, 0.5, 25], 'opus-4-5': [5, 6.25, 10, 0.5, 25], 'opus-4-1': [15, 18.75, 30, 1.5, 75], 'opus-4': [15, 18.75, 30, 1.5, 75],
+  'sonnet-5-5': [2, 2.5, 4, 0.1, 10], 'sonnet-5': [2, 2.5, 4, 0.2, 10], 'sonnet-4-6': [3, 3.75, 6, 0.3, 15], 'sonnet-4-5': [3, 3.75, 6, 0.3, 15], 'sonnet-4': [3, 3.75, 6, 0.3, 15],
+  'haiku-5-5': [0.1, 0.125, 0.2, 0.01, 0.5], 'haiku-5-5-long': [0.5, 0.625, 1, 0.05, 2.5], 'haiku-4-5': [1, 1.25, 2, 0.1, 5], 'haiku-3-5': [0.8, 1, 1.6, 0.08, 4],
+  ...(readJson(path.join(os.homedir(), '.config/clawd-mifflin/config.json'))?.prices || {}), // read here: the config is loaded further down
+};
+const FAST = { 'opus-5-5': [8, 40], 'opus-5': [10, 50], 'opus-4-8': [10, 50] }; // fast mode input/output; cache multipliers apply on top
+/** Pure: dollars for one API message. Exported for the test. */
+export function costOf(model = '', u = {}) {
+  const id = /claude-([a-z]+-\d+(?:-\d+)?)/.exec(model)?.[1];
+  const base = id && (PRICES[id] || PRICES[id.replace(/-\d+$/, '')]);
+  if (!base) return 0; // unknown or synthetic model: no guess
+  const write1h = u.cache_creation?.ephemeral_1h_input_tokens ?? 0, write5m = u.cache_creation?.ephemeral_5m_input_tokens ?? ((u.cache_creation_input_tokens || 0) - write1h);
+  const prompt = (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0);
+  let [inp, w5, w1, read, out] = id === 'haiku-5-5' && prompt > 100000 ? PRICES['haiku-5-5-long'] : base;
+  const fast = u.speed === 'fast' && FAST[id];
+  if (fast) [inp, w5, w1, read, out] = [fast[0], fast[0] * (w5 / inp), fast[0] * (w1 / inp), fast[0] * (read / inp), fast[1]];
+  const geo = /^us/i.test(u.inference_geo || '') ? 1.1 : 1;
+  const searches = (u.server_tool_use?.web_search_requests || 0) * 0.01;
+  return (((u.input_tokens || 0) * inp + write5m * w5 + write1h * w1 + (u.cache_read_input_tokens || 0) * read + (u.output_tokens || 0) * out) / 1e6) * geo + searches;
+}
+
+// A running ledger per transcript, read once and then only what was appended: tokens and cost per MYT day per
+// session, each API message counted once. Feeds the payroll board, the week's total and the digest.
+const ledgers = new Map(); // file -> { size, carry, seen: Set, days: { day: { sid: row } } }
+const mytDayOf = (t) => new Date(t + 8 * 3600e3).toISOString().slice(0, 10);
+export function addToLedger(L, line) {
+  if (!line.includes('"usage"') || !line.includes('"assistant"')) return;
+  let r; try { r = JSON.parse(line); } catch { return; }
+  const u = r.message?.usage, ts = Date.parse(r.timestamp), id = r.message?.id || r.uuid;
+  if (r.type !== 'assistant' || !u || !ts || L.seen.has(id)) return;
+  L.seen.add(id);
+  const day = (L.days[mytDayOf(ts)] ||= {}), sid = r.sessionId || 'unknown';
+  const row = (day[sid] ||= { id: sid, project: r.cwd ? path.basename(r.cwd) : 'session', input: 0, cacheRead: 0, cacheWrite: 0, output: 0, cost: 0 });
+  row.input += u.input_tokens || 0; row.cacheRead += u.cache_read_input_tokens || 0;
+  row.cacheWrite += u.cache_creation_input_tokens || 0; row.output += u.output_tokens || 0;
+  row.cost += costOf(r.message.model, u);
+}
+function ledgerOf(file) {
+  const L = ledgers.get(file) || { size: 0, carry: '', seen: new Set(), days: {} };
+  const size = fs.statSync(file).size;
+  if (size > L.size) {
+    const fd = fs.openSync(file, 'r');
+    try {
+      for (let pos = L.size; pos < size;) {
+        const buf = Buffer.alloc(Math.min(8 << 20, size - pos));
+        const n = fs.readSync(fd, buf, 0, buf.length, pos);
+        if (!n) break;
+        pos += n;
+        const lines = (L.carry + buf.toString('utf8', 0, n)).split('\n');
+        L.carry = lines.pop();
+        for (const l of lines) addToLedger(L, l);
+      }
+    } finally { fs.closeSync(fd); }
+    L.size = size;
+    ledgers.set(file, L);
+  }
+  return L;
+}
+/** Today's payroll (per session) and this week's total, from every transcript touched in the last 8 days. */
+function costs() {
+  const now = Date.now(), today = mytDayOf(now), myt = now + 8 * 3600e3, dow = (new Date(myt).getUTCDay() + 6) % 7;
+  const weekDays = new Set(Array.from({ length: dow + 1 }, (_, k) => mytDayOf(now - k * 86400e3)));
+  const payroll = new Map();
+  let week = 0, todayCost = 0;
+  for (const { file } of recentTranscripts(8 * 86400e3)) {
+    const L = ledgerOf(file);
+    for (const [day, rows] of Object.entries(L.days)) {
+      if (!weekDays.has(day)) continue;
+      for (const row of Object.values(rows)) {
+        week += row.cost;
+        if (day !== today) continue;
+        todayCost += row.cost;
+        const p = payroll.get(row.id) || { ...row, input: 0, cacheRead: 0, cacheWrite: 0, output: 0, cost: 0 };
+        for (const k of ['input', 'cacheRead', 'cacheWrite', 'output', 'cost']) p[k] += row[k];
+        payroll.set(row.id, p);
+      }
+    }
+  }
+  return { payroll: [...payroll.values()].sort((a, b) => b.cost - a.cost), cost: { today: todayCost, week } };
+}
+
+// ------------------------------------------------------------------ phone alerts: when a Claude needs you
+// Hook events become Web Push alerts through the relay: a permission prompt or a question right away, a finished
+// turn only when it ran for at least 45 seconds (short answers you are watching anyway). Same alert at most every 30 s.
+const turnStart = new Map(), lastAlert = new Map();
+const minutes = (ms) => (ms < 60e3 ? `${Math.round(ms / 1000)} s` : `${Math.round(ms / 60e3)} min`);
+export function alertFor(j, prev, waiting, started, now = Date.now()) {
+  if (!waiting || waiting === prev) return null;
+  const project = j.cwd ? path.basename(j.cwd) : 'session', tag = `${j.session_id}:${waiting}`;
+  if (waiting === 'permission') return { title: `Claude · ${project}`, body: j.message || 'needs your OK on a permission prompt', tag };
+  if (waiting === 'input') return { title: `Claude · ${project}`, body: j.message || 'is waiting for your input', tag };
+  const took = now - (started || now);
+  if (took < 45e3) return null;
+  const said = String(j.last_assistant_message || '').replace(/\s+/g, ' ').trim().slice(0, 140);
+  return { title: `Claude · ${project} is done`, body: `Finished after ${minutes(took)}${said ? `: ${said}` : ''}`, tag };
+}
+function alertOnHook(j, prev) {
+  const sid = j.session_id;
+  if (!sid) return;
+  if (j.hook_event_name === 'UserPromptSubmit') turnStart.set(sid, Date.now());
+  const message = alertFor(j, prev, hookWait.get(sid)?.waiting, turnStart.get(sid));
+  if (!message || Date.now() - (lastAlert.get(message.tag) || 0) < 30e3) return;
+  lastAlert.set(message.tag, Date.now());
+  relayPost('/push/send', message).catch((e) => console.log(`alert: ${e.message}`));
+}
+async function relayPost(route, body) {
+  if (!PUSH?.pushUrl || !PUSH?.pushToken || !control.live) return null;
+  const r = await fetch(`${new URL(PUSH.pushUrl).origin}${route}`, {
+    method: 'POST', headers: { authorization: `Bearer ${PUSH.pushToken}`, 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000),
+  });
+  if (!r.ok) throw new Error(`relay said HTTP ${r.status}`);
+  return r;
 }
 
 // ------------------------------------------------------------------ the weekly report (Monday to now, MYT)
@@ -1070,7 +1191,8 @@ async function state() {
   withHooks(act.sessions);
   const [deliveries, ci, wlHeat, rep, mus, use] = await Promise.all([commits(), builds(), heat(), report(ids), music(), usage()]);
   const [career, branchList] = await Promise.all([careers(ids), branches()]);
-  return { live: true, now: Date.now(), machine: PUSH?.machine, hq: WL || undefined, characters: chars, ...act, dundies: dundiesFor(act.replay), deliveries, builds: ci, heat: wlHeat, report: rep, careers: career, branches: branchList, hr: hrState(chars), wlLinks: wlLinks(), music: mus, usage: use };
+  const money = costs(); // complete transcripts, not just the tails: replaces the activity's payroll
+  return { live: true, now: Date.now(), machine: PUSH?.machine, hq: WL || undefined, characters: chars, ...act, payroll: money.payroll, cost: money.cost, dundies: dundiesFor(act.replay), deliveries, builds: ci, heat: wlHeat, report: rep, careers: career, branches: branchList, hr: hrState(chars), wlLinks: wlLinks(), music: mus, usage: use };
 }
 
 // ------------------------------------------------------------------ push to the online office
@@ -1126,7 +1248,7 @@ export async function seal(obj, password, iterations = 250000) {
 export function publicState(s) {
   const hqIds = new Set([...(s.hq?.future || []), ...(s.hq?.hr || [])].map((r) => r.id));
   const out = { ...s, live: false, events: [], status: {}, activeSessions: 0, counts: {}, sessions: [], subagents: [], failures: [], replay: [], payroll: [] };
-  for (const k of ['hq', 'deliveries', 'builds', 'heat', 'report', 'dundies', 'music', 'wlLinks', 'careers', 'clashes', 'branches', 'machine']) delete out[k];
+  for (const k of ['hq', 'deliveries', 'builds', 'heat', 'report', 'dundies', 'music', 'wlLinks', 'careers', 'clashes', 'branches', 'machine', 'cost']) delete out[k];
   if (s.hr) out.hr = { week: s.hr.week, picks: s.hr.picks, rooms: Object.fromEntries(Object.entries(s.hr.rooms || {}).filter(([id]) => !hqIds.has(id))) };
   // memory: how many files per project, but neither project nor file names
   out.characters = s.characters.map((c) => (c.memory ? { ...c, memory: c.memory.map((m, k) => ({ project: `project ${k + 1}`, files: m.files.map(() => 'memory') })) } : c));
@@ -1159,6 +1281,14 @@ if (process.argv.includes('--snapshot')) {
       res.writeHead(200, { 'content-type': 'application/json' });
       return res.end(JSON.stringify({ live: control.live }));
     }
+    if (url.pathname === '/api/push/subscribe' && req.method === 'POST') {
+      // this Mac's page switches alerts on through the server, which holds the relay's token
+      let body = '';
+      for await (const chunk of req) { body += chunk; if (body.length > 8192) break; }
+      try { const r = await relayPost('/push/subscribe', JSON.parse(body)); res.writeHead(r ? 204 : 503); }
+      catch (e) { res.writeHead(502, { 'content-type': 'text/plain' }); return res.end(e.message); }
+      return res.end();
+    }
     if (url.pathname === '/api/digest' && req.method === 'POST') {
       try { const text = await sendDigest(); res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ sent: true, text })); }
       catch (e) { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ sent: false, error: e.message, text: digestText(await cachedState(false)) })); }
@@ -1173,7 +1303,11 @@ if (process.argv.includes('--snapshot')) {
     if (url.pathname === '/api/hook' && req.method === 'POST') {
       let body = '';
       for await (const chunk of req) { body += chunk; if (body.length > 256 * 1024) break; }
-      try { hookEvent(JSON.parse(body)); } catch { res.writeHead(400); return res.end(); }
+      try {
+        const j = JSON.parse(body), prev = hookWait.get(j.session_id)?.waiting ?? null;
+        hookEvent(j);
+        alertOnHook(j, prev);
+      } catch { res.writeHead(400); return res.end(); }
       // the transcript is written a moment after the hook fires: give it that moment, then tell everyone
       setTimeout(() => {
         stateCache.at = 0;

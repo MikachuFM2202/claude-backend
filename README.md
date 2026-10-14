@@ -64,6 +64,16 @@ Without an account the Spotify card follows the Spotify app on this Mac (AppleSc
 
 The sign-in uses PKCE (no client secret). Tokens stay in `~/.config/clawd-mifflin/spotify.json` (mode 600); **Disconnect Spotify** deletes them.
 
+## Phone alerts
+
+Switch on **Alerts** on the phone (in the live view, or on the Mac's page on the Mac) and that device gets a notification, even with the page closed, when a Claude needs your OK on a permission prompt, asks you something, or finishes a turn that ran for 45 seconds or more. On iPhone, add the site to the Home Screen first and switch Alerts on in that app. Tapping an alert opens the office.
+
+They are Web Push messages: the Mac's server tells the relay (with its push token), and the relay encrypts each alert for every subscribed browser (RFC 8291, signed with a VAPID key, RFC 8292). The VAPID key is the relay's `VAPID_JWK` secret, made by `node scripts/setup-push.mjs`. Only the big browsers' push services are accepted as subscriptions, and only with the live password or from the Mac.
+
+## Cost (at API prices)
+
+The payroll board shows each session's cost today and the totals for today and the week, priced per message by model at Anthropic's API prices (cache writes by TTL, cache reads, fast mode, long Haiku prompts, US-only inference, web searches). On a Claude plan you pay the plan, not this: it is what the same work would cost through the API. Each transcript is read once and then only what was appended. Prices live in `server.mjs` (`PRICES`), and `prices` in the config overrides them.
+
 ## Daily digest (Telegram)
 
 Make a bot with @BotFather, send it a message, then add to `~/.config/clawd-mifflin/config.json`:

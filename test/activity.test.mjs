@@ -243,3 +243,69 @@ test('Spotify: the PKCE challenge and the player answer', () => {
   assert.equal(m.playing, true);
   assert.deepEqual(playerInfo(null), { connected: true, running: false, playing: false });
 });
+
+import { encryptPayload, vapidHeader, vapidPublic, validSubscription, b64u } from '../worker/push.js';
+
+test('web push: the browser can decrypt what the relay encrypts (RFC 8291), and the VAPID token verifies', async () => {
+  const ua = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']);
+  const uaPublic = new Uint8Array(await crypto.subtle.exportKey('raw', ua.publicKey));
+  const auth = crypto.getRandomValues(new Uint8Array(16));
+  const body = await encryptPayload('{"title":"hi"}', b64u.enc(uaPublic), b64u.enc(auth));
+  // decrypt the way a browser does
+  const salt = body.slice(0, 16), idlen = body[20], asPublic = body.slice(21, 21 + idlen), cipher = body.slice(21 + idlen);
+  assert.equal(new DataView(body.buffer, body.byteOffset).getUint32(16), 4096);
+  const asKey = await crypto.subtle.importKey('raw', asPublic, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+  const shared = new Uint8Array(await crypto.subtle.deriveBits({ name: 'ECDH', public: asKey }, ua.privateKey, 256));
+  const hk = async (s, ikm, info, n) => new Uint8Array(await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: s, info }, await crypto.subtle.importKey('raw', ikm, 'HKDF', false, ['deriveBits']), n * 8));
+  const te = new TextEncoder();
+  const ikm = await hk(auth, shared, new Uint8Array([...te.encode('WebPush: info\0'), ...uaPublic, ...asPublic]), 32);
+  const cek = await hk(salt, ikm, te.encode('Content-Encoding: aes128gcm\0'), 16), nonce = await hk(salt, ikm, te.encode('Content-Encoding: nonce\0'), 12);
+  const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce }, await crypto.subtle.importKey('raw', cek, 'AES-GCM', false, ['decrypt']), cipher));
+  assert.equal(new TextDecoder().decode(plain.slice(0, -1)), '{"title":"hi"}');
+  assert.equal(plain.at(-1), 2);
+  // VAPID: the JWT verifies with the public key it carries
+  const vk = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+  const jwk = await crypto.subtle.exportKey('jwk', vk.privateKey);
+  const h = await vapidHeader('https://fcm.googleapis.com/fcm/send/abc', jwk, 'https://example.com/');
+  const [, jwt, k] = /^vapid t=([^,]+), k=(.+)$/.exec(h);
+  assert.equal(k, vapidPublic(jwk));
+  const [hd, pl, sig] = jwt.split('.');
+  assert.equal(JSON.parse(new TextDecoder().decode(b64u.dec(pl))).aud, 'https://fcm.googleapis.com');
+  const pub = await crypto.subtle.importKey('raw', b64u.dec(k), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
+  assert.ok(await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, pub, b64u.dec(sig), te.encode(`${hd}.${pl}`)));
+  // only real push services
+  const keys = { p256dh: b64u.enc(uaPublic), auth: b64u.enc(auth) };
+  assert.ok(validSubscription({ endpoint: 'https://fcm.googleapis.com/fcm/send/x', keys }));
+  assert.ok(validSubscription({ endpoint: 'https://web.push.apple.com/abc', keys }));
+  assert.ok(!validSubscription({ endpoint: 'https://evil.example/x', keys }));
+  assert.ok(!validSubscription({ endpoint: 'http://fcm.googleapis.com/x', keys }));
+});
+
+import { costOf, addToLedger, alertFor } from '../server.mjs';
+
+test('cost at API prices: cache writes by TTL, cheap cache reads, fast mode, long Haiku prompts', () => {
+  const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} vs ${b}`);
+  // Opus 5.5: $4 in, $5 5m write, $8 1h write, $0.20 read, $20 out per million
+  near(costOf('claude-opus-5-5', { input_tokens: 1e6, output_tokens: 1e6, cache_read_input_tokens: 1e6, cache_creation_input_tokens: 2e6, cache_creation: { ephemeral_1h_input_tokens: 1e6, ephemeral_5m_input_tokens: 1e6 } }), 4 + 20 + 0.2 + 5 + 8);
+  near(costOf('claude-sonnet-5-5', { input_tokens: 1e6 }), 2);
+  near(costOf('claude-opus-5-5', { output_tokens: 1e6, speed: 'fast' }), 40);
+  near(costOf('claude-haiku-5-5', { input_tokens: 50000 }), 0.005);
+  near(costOf('claude-haiku-5-5', { input_tokens: 150000 }), 0.075); // over 100k: the higher price for the whole request
+  near(costOf('claude-opus-5-5', { input_tokens: 1e6, inference_geo: 'us' }), 4.4);
+  assert.equal(costOf('<synthetic>', { input_tokens: 1e6 }), 0);
+  // the ledger counts each API message once even when it spans several records
+  const L = { seen: new Set(), days: {} };
+  const line = JSON.stringify({ type: 'assistant', sessionId: 's', cwd: '/p/app', timestamp: '2026-10-14T02:00:00Z', message: { id: 'm1', model: 'claude-sonnet-5-5', usage: { input_tokens: 1e6 } } });
+  addToLedger(L, line); addToLedger(L, line);
+  near(L.days['2026-10-14'].s.cost, 2);
+  assert.equal(L.days['2026-10-14'].s.input, 1e6);
+});
+
+test('phone alerts: permission at once, a finished turn only after a long one', () => {
+  const j = { session_id: 's', cwd: '/p/app', hook_event_name: 'Stop', last_assistant_message: 'All  done.\nTests pass.' };
+  const now = 1e9;
+  assert.equal(alertFor(j, null, 'reply', now - 20e3, now), null);
+  assert.deepEqual(alertFor(j, null, 'reply', now - 120e3, now), { title: 'Claude · app is done', body: 'Finished after 2 min: All done. Tests pass.', tag: 's:reply' });
+  assert.equal(alertFor({ ...j, hook_event_name: 'Notification', message: 'Claude needs your permission to use Bash' }, null, 'permission', 0, now).body, 'Claude needs your permission to use Bash');
+  assert.equal(alertFor(j, 'reply', 'reply', 0, now), null); // no change, no alert
+});

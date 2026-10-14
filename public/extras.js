@@ -83,14 +83,44 @@ function ambient(t) {
 
 // ------------------------------------------------------------------ desktop alerts when a Claude waits for you
 export const alerts = { on: store.get('clawd-mifflin-alerts') === '1' && typeof Notification !== 'undefined' && Notification.permission === 'granted' };
-export async function setAlerts(on) {
+// Phone alerts: with the live view (or on the Mac's page) Alerts also subscribes this browser to Web Push through
+// the relay, so the alert arrives with the page closed; on iPhone that needs the Home Screen app.
+const RELAY_ORIGIN = 'https://clawd-mifflin.aisymikhailkmb.workers.dev';
+const keyBytes = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (s.length % 4)) % 4)), (c) => c.charCodeAt(0));
+async function pushSubscribe(on, source, pass) {
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!on && !sub) return false;
+  if (on && !sub) {
+    const { key } = await fetch(`${RELAY_ORIGIN}/push/key`).then((r) => r.json());
+    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) });
+  }
+  const body = JSON.stringify({ subscription: sub.toJSON(), on });
+  const r = source === 'local'
+    ? await fetch('api/push/subscribe', { method: 'POST', headers: { 'content-type': 'application/json' }, body })
+    : await fetch(`${RELAY_ORIGIN}/push/subscribe`, { method: 'POST', headers: { authorization: `Bearer ${pass}`, 'content-type': 'application/json' }, body });
+  if (!r.ok) throw new Error(`the relay said HTTP ${r.status}`);
+  if (!on) await sub.unsubscribe();
+  return on;
+}
+export const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window;
+/** Switch alerts; returns { on, push, note } (note: why phone alerts are not on, if they are not). */
+export async function setAlerts(on, { source, pass } = {}) {
   if (on && typeof Notification !== 'undefined' && Notification.permission !== 'granted') on = (await Notification.requestPermission()) === 'granted';
   alerts.on = on;
   store.set('clawd-mifflin-alerts', on ? '1' : null);
-  return on;
+  let note = '';
+  alerts.push = false;
+  if (source !== 'local' && source !== 'relay') note = on ? 'Phone alerts need the live view.' : '';
+  else if (!pushSupported()) note = on ? 'Phone alerts on iPhone: Add to Home Screen, open the app, then switch Alerts on there.' : '';
+  else {
+    try { alerts.push = await pushSubscribe(on, source, pass); } catch (e) { note = `Phone alerts are not on: ${e.message}`; }
+  }
+  return { on, push: alerts.push, note };
 }
-export function alert(title, body) {
+export function alert(title, body, { pushed = false } = {}) {
   sfx('chime');
+  if (pushed && alerts.push) return; // the Mac sends this one as a push alert already
   if (!alerts.on || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
   try { new Notification(title, { body, tag: title, icon: 'icons/icon-192.png' }); } catch { /* some mobiles only notify from a service worker */ }
 }
@@ -580,22 +610,26 @@ function tickConfetti(dt) {
 
 // ------------------------------------------------------------------ payroll: tokens per session today
 const kilo = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
-export function showPayroll(list = []) {
+const usd = (n) => (n >= 100 ? `$${Math.round(n)}` : `$${n.toFixed(2)}`);
+export function showPayroll(list = [], cost = null) {
   const g = payBoard.canvas.getContext('2d'), W = 512, H = 296;
   g.fillStyle = '#FBF6EC'; g.fillRect(0, 0, W, H);
   g.fillStyle = '#2A2420'; g.font = 'bold 26px system-ui'; g.fillText('PAYROLL', 18, 38);
-  g.fillStyle = '#7A6F66'; g.font = '15px system-ui'; g.fillText('tokens per session today · cache share', 140, 37);
+  g.fillStyle = '#7A6F66'; g.font = '15px system-ui'; g.fillText('today: tokens · cost at API prices · cache', 140, 37);
   g.fillStyle = '#D9CCB8'; g.fillRect(18, 50, W - 36, 2);
   if (!list.length) { g.fillStyle = '#7A6F66'; g.font = '18px system-ui'; g.fillText(ctx.live ? 'nobody on the clock yet' : 'live view only', 18, 92); }
   list.slice(0, 6).forEach((p, k) => {
     const y = 82 + k * 35, total = p.input + p.cacheWrite + p.cacheRead + p.output, share = p.cacheRead / Math.max(1, p.input + p.cacheWrite + p.cacheRead);
     g.fillStyle = '#2A2420'; g.font = 'bold 16px system-ui'; g.fillText(`${k + 1}. ${p.project}`.slice(0, 24), 18, y);
-    g.font = '15px ui-monospace, Menlo, monospace'; g.textAlign = 'right'; g.fillText(kilo(total), 330, y); g.textAlign = 'left';
-    g.fillStyle = '#E8DCC8'; g.fillRect(345, y - 13, 120, 14);
-    g.fillStyle = '#3AA76D'; g.fillRect(345, y - 13, 120 * share, 14);
-    g.fillStyle = '#2A2420'; g.font = '13px system-ui'; g.fillText(`${Math.round(share * 100)}%`, 470, y - 1);
+    g.font = '15px ui-monospace, Menlo, monospace'; g.textAlign = 'right'; g.fillText(kilo(total), 290, y);
+    g.font = 'bold 15px ui-monospace, Menlo, monospace'; g.fillStyle = '#B4532A'; g.fillText(p.cost != null ? usd(p.cost) : '', 375, y); g.textAlign = 'left';
+    g.fillStyle = '#E8DCC8'; g.fillRect(388, y - 13, 80, 14);
+    g.fillStyle = '#3AA76D'; g.fillRect(388, y - 13, 80 * share, 14);
+    g.fillStyle = '#2A2420'; g.font = '13px system-ui'; g.fillText(`${Math.round(share * 100)}%`, 472, y - 1);
   });
-  g.fillStyle = '#7A6F66'; g.font = '12px system-ui'; g.fillText('cache = context re-read, billed at a fraction of new input', 18, H - 12);
+  g.fillStyle = '#2A2420'; g.font = 'bold 15px system-ui';
+  if (cost) g.fillText(`Today ${usd(cost.today)} · this week ${usd(cost.week)}`, 18, H - 30);
+  g.fillStyle = '#7A6F66'; g.font = '12px system-ui'; g.fillText('API-price equivalent: on a Claude plan you pay the plan, not this', 18, H - 12);
   payBoard.tex.needsUpdate = true;
 }
 
@@ -623,7 +657,7 @@ export function openReport(r) {
   const feat = Object.entries(r.commits.perFeature).sort((a, b) => b[1] - a[1]).map(([id, n]) => [nameOf(id), n]);
   body.innerHTML = `
     <h3>Week ${esc(r.week.split('-W')[1])} · ${fmt(r.from)} to ${fmt(Date.now())}</h3>
-    <p class="kpis"><b>${calls}</b> tool calls · <b>${fails}</b> failed · <b>${r.sessions}</b> sessions · ${ctx.hq ? `<b>${r.commits.total}</b> ${esc(ctx.hq.name)} commits · ` : ''}<b>${r.files.count}</b> files edited</p>
+    <p class="kpis"><b>${calls}</b> tool calls · <b>${fails}</b> failed · <b>${r.sessions}</b> sessions · ${ctx.state?.cost ? `<b>${usd(ctx.state.cost.week)}</b> at API prices · ` : ''}${ctx.hq ? `<b>${r.commits.total}</b> ${esc(ctx.hq.name)} commits · ` : ''}<b>${r.files.count}</b> files edited</p>
     <h2>Calls by day</h2><div class="days">${r.days.map((n, k) => `<div><i style="height:${(n / Math.max(1, ...r.days)) * 60}px"></i><small>${dayNames[k]}</small></div>`).join('')}</div>
     <h2>Busiest staff</h2>${bars(r.calls.slice(0, 8).map(([id, n]) => [nameOf(id), n]))}
     ${r.failures.length ? `<h2>Most failures</h2>${bars(r.failures.map(([id, n]) => [nameOf(id), n]))}` : ''}

@@ -186,6 +186,8 @@ function select(a) {
   if (d.paths) rows.push(['Files', d.paths.join('\n')]);
   if (d.session) rows.push(['Model', [modelName(d.session.model), d.session.effort && `${d.session.effort} effort`].filter(Boolean).join(', ') || 'unknown'], ['Mode', modeName(d.session.mode) || 'unknown']);
   if (d.heat) rows.push(['This week', `${d.heat} lines changed`]);
+  const pay = d.session && ctx.state?.payroll?.find((p) => p.id === d.session.id);
+  if (pay?.cost != null) rows.push(['Cost today', `≈ $${pay.cost.toFixed(2)} at API prices`]);
   if (d.ctx) rows.push(['Context', `${Math.round(d.ctx.tokens / 1000)}k of ${d.ctx.max >= 1e6 ? '1M' : '200k'} tokens${d.ctx.compactedAt ? `\ncompacted ${ago(d.ctx.compactedAt)} ago` : ''}`]);
   if (d.waiting) rows.push(['Waiting', { permission: 'for your OK on a permission prompt', input: 'for your input', reply: 'for your next message' }[d.waiting]]);
   // a 30-day career: calls per day, the best day, Dundies won
@@ -458,7 +460,7 @@ function applyState(s) {
     if (kind) {
       a.setWork(false);
       a.wait(kind, layout.waitSpots[waitIdx++ % layout.waitSpots.length]);
-      if (lastWait.get(sid) !== kind && !firstState) alert(a.def.name, `Claude ${WAIT_ALERT[kind]}`);
+      if (lastWait.get(sid) !== kind && !firstState) alert(a.def.name, `Claude ${WAIT_ALERT[kind]}`, { pushed: true });
     } else if (!quiet && x?.mode === 'plan' && layout.planSpots[planIdx]) {
       a.setWork(false);
       a.wait('plan', layout.planSpots[planIdx++]);
@@ -493,7 +495,7 @@ function applyState(s) {
     store.set('clawd-mifflin-drill', String(weekly.resetsAt));
     setTimeout(fireDrill, firstState ? 3000 : 0);
   }
-  showPayroll(s.payroll || []);
+  showPayroll(s.payroll || [], s.cost);
   showHeat(s.heat || {});
   if (!paused) updateWeather();
   $('wx').textContent = kl.text ? `${kl.text}${kl.temp != null ? ` ${Math.round(kl.temp)}°C` : ''}` : '';
@@ -563,7 +565,12 @@ function setPaused(p) {
 $('live').onclick = () => setPaused(!paused);
 $('sound').onclick = () => { setSound(!sound.on); $('sound').setAttribute('aria-checked', String(sound.on)); };
 $('sound').setAttribute('aria-checked', String(sound.on));
-$('alerts').onclick = async () => { $('alerts').setAttribute('aria-checked', String(await setAlerts(!alerts.on))); };
+$('alerts').onclick = async () => {
+  const r = await setAlerts(!alerts.on, { source, pass: store.get(PASS_KEY) });
+  $('alerts').setAttribute('aria-checked', String(r.on));
+  if (r.note) tip(r.note, 9);
+  else if (r.push) tip('Alerts are on: this device gets a notification when a Claude needs you, even with the page closed.');
+};
 $('alerts').setAttribute('aria-checked', String(alerts.on));
 if (typeof Notification === 'undefined') $('alerts').hidden = true;
 $('report-btn').onclick = () => { openReport(ctx.state?.report); $('digest').hidden = source !== 'local'; if (document.body.classList.contains('compact')) setDock(false); };
