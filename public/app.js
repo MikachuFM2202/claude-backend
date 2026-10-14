@@ -310,9 +310,10 @@ function gate() {
       const v = $('gate-pass').value.trim();
       if (!v) return;
       $('gate-msg').textContent = 'Checking…';
+      // the demo password is checked here in the browser; only anything else goes to the relay
+      if (await openDemo(v)) { store.set(DEMO_KEY, v); return done(); }
       const status = await relayCheck(v);
       if (status && status !== 401) { store.set(PASS_KEY, v); return done(); }
-      if (await openDemo(v)) { store.set(DEMO_KEY, v); return done(); }
       $('gate-msg').textContent = status ? 'Wrong password' : 'Wrong password (or offline)';
       $('gate-pass').select();
     };
@@ -324,7 +325,8 @@ const store = {
 };
 let source = null, offline = false, paused = store.get(PAUSE_KEY) === '1';
 async function fetchState(fresh = false) {
-  if (source === null || source === 'local') {
+  // only the Mac's own page has the local API: elsewhere (GitHub Pages) don't even ask
+  if ((source === null || source === 'local') && /^(127\.0\.0\.1|localhost)$/.test(location.hostname)) {
     try {
       const r = await fetch(fresh ? 'api/state?fresh=1' : 'api/state', { cache: 'no-store' });
       if (r.ok) { source = 'local'; ctx.live = true; offline = false; return await r.json(); }
@@ -334,7 +336,11 @@ async function fetchState(fresh = false) {
   if (pass) {
     try {
       const r = await fetch(RELAY, { headers: { authorization: `Bearer ${pass}` }, cache: 'no-store' });
-      if (r.status === 401) { store.set(PASS_KEY, null); $('unlock-msg').textContent = 'Wrong password'; }
+      if (r.status === 401) {
+        store.set(PASS_KEY, null);
+        if (source === 'relay') location.reload(); // the live password changed: rebuild as the demo, without the HQ
+        $('unlock-msg').textContent = 'Wrong password';
+      }
       else if (r.ok) {
         const s = await r.json();
         source = 'relay'; ctx.live = true;
@@ -543,6 +549,7 @@ $('digest').onclick = async () => {
 };
 $('timelapse').onclick = () => {
   if (replay.on) return;
+  if (!replayList().length) { $('timelapse').textContent = '⏺ nothing yet today'; setTimeout(() => ($('timelapse').textContent = '⏺ Time-lapse'), 1800); return; }
   const stop = recordCanvas();
   if (!stop) { $('timelapse').textContent = 'not supported here'; return; }
   $('timelapse').textContent = '⏺ Recording…';
@@ -558,9 +565,10 @@ $('timelapse').onclick = () => {
 };
 $('report-close').onclick = () => ($('report').hidden = true);
 $('report-copy').onclick = () => navigator.clipboard?.writeText($('report').dataset.text || '').then(() => { $('report-copy').textContent = 'Copied'; setTimeout(() => ($('report-copy').textContent = 'Copy as text'), 1500); });
+const replayList = () => (ctx.live ? ctx.state?.replay || [] : [...(ctx.state?.events || [])].reverse().map((e) => [e.t, e.char, e.tool, e.error ? 1 : 0]));
 $('replay').onclick = () => {
   if (replay.on) return stopReplay();
-  const list = ctx.live ? ctx.state?.replay || [] : [...(ctx.state?.events || [])].reverse().map((e) => [e.t, e.char, e.tool, e.error ? 1 : 0]);
+  const list = replayList();
   if (!list.length) { $('replay').textContent = '▶ nothing yet today'; setTimeout(() => ($('replay').textContent = '▶ Replay'), 1800); return; }
   $('replay').textContent = '■ Stop';
   startReplay(list, () => {

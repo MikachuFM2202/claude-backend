@@ -126,7 +126,7 @@ h2 { margin: 0 0 6px; font-size: 11px; letter-spacing: 0.08em; text-transform: u
 .panel .link { margin: 6px 0; font-size: 12px; overflow-wrap: anywhere; }
 .panel .link button { margin-left: 6px; border: 1px solid var(--line); background: none; color: var(--ink); border-radius: 6px; font: inherit; font-size: 11px; padding: 0 6px; cursor: pointer; }
 a { color: var(--clawd); }
-.music { right: 12px; bottom: var(--bottom); width: 260px; z-index: 6; }
+.music { right: 12px; bottom: var(--bottom); width: 260px; z-index: 8; } /* above the character panel */
 .music .x { position: absolute; right: 8px; top: 4px; border: 0; background: none; font-size: 20px; cursor: pointer; color: var(--muted); }
 .music .track { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .music .ctl { display: flex; gap: 8px; margin: 8px 0 4px; }

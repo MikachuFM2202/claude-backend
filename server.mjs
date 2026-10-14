@@ -1101,8 +1101,8 @@ if (process.argv.includes('--snapshot')) {
     }
     if (url.pathname === '/api/ifc') {
       const f = await ifcFile();
+      if (url.searchParams.has('info')) { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify(f ? { name: path.basename(f), size: fs.statSync(f).size } : null)); }
       if (!f) { res.writeHead(404); return res.end(); }
-      if (url.searchParams.has('info')) { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ name: path.basename(f), size: fs.statSync(f).size })); }
       res.writeHead(200, { 'content-type': 'application/octet-stream', 'cache-control': 'no-store' });
       return fs.createReadStream(f).pipe(res);
     }
