@@ -1285,7 +1285,12 @@ if (process.argv.includes('--snapshot')) {
       // this Mac's page switches alerts on through the server, which holds the relay's token
       let body = '';
       for await (const chunk of req) { body += chunk; if (body.length > 8192) break; }
-      try { const r = await relayPost('/push/subscribe', JSON.parse(body)); res.writeHead(r ? 204 : 503); }
+      // (the Host, Origin and JSON checks at the top of this handler already keep other sites out; forward only these fields)
+      try {
+        const { subscription: sub, on } = JSON.parse(body);
+        const r = await relayPost('/push/subscribe', { subscription: { endpoint: String(sub?.endpoint || ''), keys: { p256dh: String(sub?.keys?.p256dh || ''), auth: String(sub?.keys?.auth || '') } }, on: on !== false });
+        res.writeHead(r ? 204 : 503);
+      }
       catch (e) { res.writeHead(502, { 'content-type': 'text/plain' }); return res.end(e.message); }
       return res.end();
     }
