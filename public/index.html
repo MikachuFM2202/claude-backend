@@ -144,6 +144,16 @@
 </nav>
 
 <div class="legend card" id="legend"></div>
+
+<section class="card terminal" id="terminal" aria-label="Terminal output">
+  <div class="term-header">
+    <h2>Terminal</h2>
+    <button class="x" id="terminal-close" aria-label="Close">&times;</button>
+    <button id="terminal-clear" title="Clear">Clear</button>
+  </div>
+  <div id="terminal-output"></div>
+</section>
+<button class="term-toggle" id="terminal-toggle" title="Show terminal output">&#x25B2; Terminal</button>
 <div id="loading">
   <div id="loading-text">Hiring staff&hellip;</div>
   <form id="gate" class="gate" hidden>

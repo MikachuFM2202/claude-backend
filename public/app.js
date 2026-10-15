@@ -123,6 +123,8 @@ function renderFeed(events) {
     li.onclick = () => { focusFail = e.error ? e.id : null; if (a) select(a); };
     return li;
   }));
+  // also update terminal
+  if (typeof updateTerminal === 'function') updateTerminal(events);
 }
 const swatch = (color) => { const i = document.createElement('i'); i.className = 'swatch'; i.style.background = color; return i; };
 let cabinetsLabelled = '';
@@ -669,15 +671,63 @@ function renderRegistry() {
   }));
   $('registry-count').textContent = `${list.length} item${list.length === 1 ? '' : 's'}`;
 }
-$('registry-btn').onclick = openRegistry;
-$('registry-close').onclick = () => ($('registry').hidden = true);
-$('registry-search').oninput = renderRegistry;
+if ($('registry-btn')) $('registry-btn').onclick = openRegistry;
+if ($('registry-close')) $('registry-close').onclick = () => ($('registry').hidden = true);
+if ($('registry-search')) $('registry-search').oninput = renderRegistry;
 document.querySelectorAll('.registry-filters .filter').forEach((b) => (b.onclick = () => {
   document.querySelectorAll('.registry-filters .filter').forEach((x) => x.classList.remove('on'));
   b.classList.add('on');
   registryFilter = b.dataset.filter;
   renderRegistry();
 }));
+
+// ------------------------------------------------------------------ terminal: live tool outputs
+let terminalOpen = false;
+const terminalLines = [];
+const MAX_TERM_LINES = 200;
+function updateTerminal(events) {
+  for (const e of events) {
+    if (!terminalLines.find((l) => l.t === e.t && l.tool === e.tool && l.char === e.char)) {
+      const line = { t: e.t || Date.now(), tool: e.tool, char: e.char, error: e.error, code: e.code, input: e.input, detail: e.detail };
+      terminalLines.push(line);
+      if (terminalLines.length > MAX_TERM_LINES) terminalLines.shift();
+    }
+  }
+  if (terminalOpen) renderTerminal();
+}
+function renderTerminal() {
+  const el = $('terminal-output');
+  if (!el) return;
+  el.replaceChildren(...terminalLines.slice(-100).map((e) => {
+    const div = document.createElement('div');
+    div.className = 'term-line' + (e.error ? ' err' : '');
+    const time = document.createElement('span'); time.className = 'time';
+    time.textContent = new Date(e.t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const tool = document.createElement('span'); tool.className = 'tool'; tool.textContent = e.tool || 'unknown';
+    const code = document.createElement('span');
+    code.className = 'code' + (e.error ? ' fail' : e.code === 0 ? ' ok' : '');
+    code.textContent = e.code != null ? `[${e.code}]` : e.error ? '[ERR]' : '[OK]';
+    div.append(time, tool, code);
+    if (e.input) { const inp = document.createElement('span'); inp.textContent = ` ${e.input.slice(0, 80)}${e.input.length > 80 ? '…' : ''}`; div.append(inp); }
+    return div;
+  }));
+  el.scrollTop = el.scrollHeight;
+}
+function openTerminal() {
+  terminalOpen = true;
+  if ($('terminal')) $('terminal').hidden = false;
+  if ($('terminal-toggle')) $('terminal-toggle').hidden = true;
+  renderTerminal();
+}
+function closeTerminal() {
+  terminalOpen = false;
+  if ($('terminal')) $('terminal').hidden = true;
+  if ($('terminal-toggle')) $('terminal-toggle').hidden = false;
+}
+if ($('terminal')) $('terminal').hidden = true;
+if ($('terminal-toggle')) $('terminal-toggle').onclick = openTerminal;
+if ($('terminal-close')) $('terminal-close').onclick = closeTerminal;
+if ($('terminal-clear')) $('terminal-clear').onclick = () => { terminalLines.length = 0; renderTerminal(); };
 const replayList = () => (ctx.live ? ctx.state?.replay || [] : [...(ctx.state?.events || [])].reverse().map((e) => [e.t, e.char, e.tool, e.error ? 1 : 0]));
 $('replay').onclick = () => {
   if (replay.on) return stopReplay();
