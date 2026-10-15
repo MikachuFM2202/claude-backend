@@ -576,7 +576,10 @@ $('alerts').onclick = async () => {
 };
 $('alerts').setAttribute('aria-checked', String(alerts.on));
 if (typeof Notification === 'undefined') $('alerts').hidden = true;
-$('report-btn').onclick = () => { openReport(ctx.state?.report); $('digest').hidden = source !== 'local'; if (document.body.classList.contains('compact')) setDock(false); };
+$('report-btn').onclick = () => {
+  if (!$('report').hidden) { $('report').hidden = true; return; } // second tap closes
+  $('registry').hidden = true;
+  openReport(ctx.state?.report); $('digest').hidden = source !== 'local'; if (document.body.classList.contains('compact')) setDock(false); };
 $('digest').onclick = async () => {
   $('digest-msg').textContent = 'Sending…';
   const r = await fetch('api/digest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }).then((x) => x.json()).catch(() => null);
@@ -604,6 +607,8 @@ $('report-copy').onclick = () => navigator.clipboard?.writeText($('report').data
 // ------------------------------------------------------------------ registry: all plugins, MCPs, skills
 let registryFilter = 'all';
 function openRegistry() {
+  if (!$('registry').hidden) { $('registry').hidden = true; return; } // second tap closes
+  $('report').hidden = true;
   $('registry').hidden = false;
   renderRegistry();
   if (document.body.classList.contains('compact')) setDock(false);
@@ -612,7 +617,6 @@ function renderRegistry() {
   const q = ($('registry-search').value || '').toLowerCase().trim();
   const list = [...agents.values()].filter((a) => {
     const d = a.def;
-    if (!['plugin', 'mcp', 'skill', 'core', 'candidate'].includes(d.kind)) return false;
     if (registryFilter !== 'all' && d.kind !== registryFilter) return false;
     if (q && ![d.name, d.id, d.desc, d.vendor, d.author, d.category].some((v) => v?.toLowerCase().includes(q))) return false;
     return true;
@@ -670,7 +674,7 @@ let terminalOpen = false;
 const terminalLines = [];
 const MAX_TERM_LINES = 200;
 function updateTerminal(events) {
-  for (const e of events) {
+  for (const e of [...events].reverse()) { // feed is newest first, the terminal reads top to bottom
     if (!terminalLines.find((l) => l.t === e.t && l.tool === e.tool && l.char === e.char)) {
       const line = { t: e.t || Date.now(), tool: e.tool, char: e.char, error: e.error, code: e.code, input: e.input, detail: e.detail };
       terminalLines.push(line);
