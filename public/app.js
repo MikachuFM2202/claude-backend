@@ -523,6 +523,7 @@ function applyState(s) {
   renderStats();
   renderLegend();
   if (ctx.selected && !$('panel').hidden && agents.has(ctx.selected.id)) select(ctx.selected);
+  if (!$('registry').hidden) renderRegistry();
 }
 
 let polling = false;
@@ -611,17 +612,9 @@ function renderRegistry() {
   const q = ($('registry-search').value || '').toLowerCase().trim();
   const list = [...agents.values()].filter((a) => {
     const d = a.def;
-    // filter by kind
-    if (registryFilter !== 'all') {
-      if (registryFilter === 'plugin' && d.kind !== 'plugin') return false;
-      if (registryFilter === 'mcp' && d.kind !== 'mcp') return false;
-      if (registryFilter === 'skill' && d.kind !== 'skill') return false;
-      if (registryFilter === 'core' && d.kind !== 'core') return false;
-    }
-    // skip sessions, boss, interns, candidates
-    if (['boss', 'session', 'intern', 'branch', 'candidate', 'wlcand', 'fair', 'archive', 'reception', 'hr', 'wl'].includes(d.kind)) return false;
-    // search
-    if (q && !(d.name?.toLowerCase().includes(q) || d.id?.toLowerCase().includes(q) || d.desc?.toLowerCase().includes(q) || d.vendor?.toLowerCase().includes(q))) return false;
+    if (!['plugin', 'mcp', 'skill', 'core', 'candidate'].includes(d.kind)) return false;
+    if (registryFilter !== 'all' && d.kind !== registryFilter) return false;
+    if (q && ![d.name, d.id, d.desc, d.vendor, d.author, d.category].some((v) => v?.toLowerCase().includes(q))) return false;
     return true;
   }).sort((a, b) => (a.def.name || a.def.id).localeCompare(b.def.name || b.def.id));
 
@@ -629,36 +622,27 @@ function renderRegistry() {
   el.replaceChildren(...list.map((a) => {
     const d = a.def;
     const row = document.createElement('div'); row.className = 'reg-item';
-    // status dot
+    const status = d.kind === 'candidate' ? 'recommended' : a.working ? 'active' : a.disabled || d.enabled === false ? 'disabled' : d.needsAuth ? 'needs sign-in' : 'installed';
     const dot = document.createElement('span'); dot.className = 'dot';
-    dot.style.background = a.working ? '#22C55E' : a.disabled ? '#EF4444' : colorOf(d);
-    // info
+    dot.style.background = { active: '#22C55E', disabled: '#EF4444', recommended: '#F59E0B', 'needs sign-in': '#F59E0B' }[status] || colorOf(d);
     const info = document.createElement('div'); info.className = 'info';
     const name = document.createElement('div'); name.className = 'name'; name.textContent = d.name || d.id;
     const desc = document.createElement('div'); desc.className = 'desc'; desc.textContent = d.desc || d.bio || d.title || '';
     const meta = document.createElement('div'); meta.className = 'meta';
-    const badge = document.createElement('span'); badge.className = 'badge';
-    badge.textContent = a.working ? 'active' : a.disabled ? 'disabled' : 'idle';
-    badge.classList.add(a.working ? 'active' : a.disabled ? 'disabled' : '');
-    const kindBadge = document.createElement('span'); kindBadge.className = 'badge'; kindBadge.textContent = d.kind || 'tool';
-    const vendor = document.createElement('span'); vendor.textContent = ctx.cast.vendors[d.vendor]?.label || d.vendor || '';
+    const badge = document.createElement('span'); badge.className = 'badge'; badge.textContent = status;
+    if (status === 'active' || status === 'disabled') badge.classList.add(status);
+    else if (status === 'recommended') badge.classList.add('candidate');
+    const kindBadge = document.createElement('span'); kindBadge.className = 'badge'; kindBadge.textContent = d.kind === 'candidate' ? 'plugin' : d.kind;
+    const vendor = document.createElement('span'); vendor.textContent = ctx.cast.vendors[d.vendor]?.label || d.author || d.vendor || '';
     meta.append(badge, kindBadge, vendor);
     info.append(name, desc, meta);
     // actions
     const actions = document.createElement('div'); actions.className = 'actions';
-    if (d.url || d.homepage) {
+    for (const [label, href] of [['Open', d.url], ['Site', d.homepage !== d.url && d.homepage]]) {
+      if (!safeUrl(href)) continue;
       const link = document.createElement('a');
-      link.href = d.url || d.homepage;
-      link.target = '_blank'; link.rel = 'noopener';
-      link.textContent = 'Open';
+      link.href = href; link.target = '_blank'; link.rel = 'noopener'; link.textContent = label;
       actions.append(link);
-    }
-    if (d.source) {
-      const src = document.createElement('a');
-      src.href = d.source;
-      src.target = '_blank'; src.rel = 'noopener';
-      src.textContent = 'Source';
-      actions.append(src);
     }
     const viewBtn = document.createElement('button');
     viewBtn.textContent = 'View';
