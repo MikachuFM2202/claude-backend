@@ -67,6 +67,10 @@
   "anthropic-plugins": {
    "label": "Anthropic",
    "color": "#D97757"
+  },
+  "dunder": {
+   "label": "Clawd Mifflin Paper Co.",
+   "color": "#2B4C7E"
   }
  },
  "characters": [
@@ -542,6 +546,291 @@
    "vendor": "zoom",
    "acc": [
     "headset"
+   ]
+  },
+  {
+   "id": "dm-michael",
+   "name": "Michael Scarn",
+   "title": "Regional Manager",
+   "kind": "dm",
+   "vendor": "dunder",
+   "color": "#D97757",
+   "acc": [
+    "hairSide:#3B2A1E",
+    "suit:#2F3640",
+    "tie:#1F3A93",
+    "mug"
+   ],
+   "bio": "Runs the Scranton branch. Has a mug that says so.",
+   "lines": [
+    "That's what she said!",
+    "I'm not superstitious, but I am a little stitious.",
+    "I DECLARE BANKRUPTCY!",
+    "Would I rather be feared or loved? Easy. Both.",
+    "Sometimes I start a sentence and I don't even know where it's going.",
+    "World's Best Boss ☕"
+   ]
+  },
+  {
+   "id": "dm-pam",
+   "name": "Pam Beezly",
+   "title": "Receptionist",
+   "kind": "dm",
+   "vendor": "dunder",
+   "color": "#D97757",
+   "acc": [
+    "hairLong:#8A4B2A",
+    "shirt:#E8A0B4",
+    "paintbrush"
+   ],
+   "bio": "Answers the phone, paints on weekends, pranks Dwight with Jim.",
+   "lines": [
+    "Clawd Mifflin, this is Pam.",
+    "They're the same picture.",
+    "😐 (looks at the camera)",
+    "Michael, no."
+   ]
+  },
+  {
+   "id": "dm-dwight",
+   "name": "Dwight Schrood",
+   "title": "Assistant (to the) Regional Manager",
+   "kind": "dm",
+   "vendor": "dunder",
+   "color": "#D97757",
+   "acc": [
+    "hairPart:#4A3020",
+    "shirt:#C9A227",
+    "tie:#5B3A22",
+    "glasses",
+    "badge",
+    "beet"
+   ],
+   "bio": "Beet farmer, volunteer sheriff, top salesman. Keeps his stapler in Jell-O (not by choice).",
+   "lines": [
+    "FALSE.",
+    "Bears. Beets. Battlestar Galactica.",
+    "Identity theft is not a joke, Jim!",
+    "Question: which bear is best?",
+    "Assistant TO the regional manager.",
+    "Whose stapler is in Jell-O AGAIN?"
+   ]
+  },
+  {
+   "id": "dm-jim",
+   "name": "Jim Halpbert",
+   "title": "Sales",
+   "kind": "dm",
+   "vendor": "dunder",
+   "color": "#D97757",
+   "acc": [
+    "hairFloppy:#6B4A2E",
+    "shirt:#A9C7E8",
+    "tie:#2B3A55"
+   ],
+   "bio": "Sells paper. Mostly puts Dwight's things in Jell-O.",
+   "lines": [
+    "😐 (looks at the camera)",
+    "Fact: bears eat beets.",
+    "Dwight, your stapler is in Jell-O.",
+    "Bears. Beets. Battlestar Galactica."
+   ]
+  },
+  {
+   "id": "dm-andy",
+   "name": "Andy Bernerd",
+   "title": "Sales (the Nard Dog)",
+   "kind": "dm",
+   "vendor": "dunder",
+   "color": "#D97757",
+   "acc": [
+    "hairSide:#8B6A45",
+    "suit:#22365C",
+    "tie:#B03A2E"
+   ],
+   "bio": "Went to Cornell. You may have heard.",
+   "lines": [
+    "I went to Cornell. Ever heard of it?",
+    "Rit dit dit di doo! 🎶",
+    "Nard Dog!",
+    "I'll be the number one salesman in the company."
+   ]
+  },
+  {
+   "id": "dm-ryan",
+   "name": "Ryan Howerd",
+   "title": "The Temp",
+   "kind": "dm",
+   "vendor": "dunder",
+   "color": "#D97757",
+   "acc": [
+    "hairSide:#1E1712",
+    "suit:#1B1B1F",
+    "phone"
+   ],
+   "bio": "Started as the temp. Has a start-up idea.",
+   "lines": [
+    "WUPHF.com is the future.",
+    "I'm the temp.",
+    "Kelly, not now."
+   ]
+  },
+  {
+   "id": "dm-angela",
+   "name": "Angela Martine",
+   "title": "Head of Accounting",
+   "kind": "dm",
+   "vendor": "dunder",
+   "color": "#D97757",
+   "acc": [
+    "hairBun:#E6C878",
+    "shirt:#E9DCC4",
+    "cat"
+   ],
+   "bio": "Runs accounting and the party planning committee. Loves her cats.",
+   "lines": [
+    "Sprinkles! 😿",
+    "Party planning committee. Now.",
+    "I don't trust that.",
+    "My cats are my family."
+   ]
+  },
+  {
+   "id": "dm-oscar",
+   "name": "Oscar Martinex",
+   "title": "Accounting",
+   "kind": "dm",
+   "vendor": "dunder",
+   "color": "#D97757",
+   "acc": [
+    "hairShort:#1E1712",
+    "beard:#1E1712",
+    "suit:#6B7280",
+    "tie:#7C2D12"
+   ],
+   "bio": "Accountant. Actually, the smartest one in the room.",
+   "lines": [
+    "Actually…",
+    "That's not how a surplus works.",
+    "Actually, that is not true."
+   ]
+  },
+  {
+   "id": "dm-kevin",
+   "name": "Kevin Malonee",
+   "title": "Accounting",
+   "kind": "dm",
+   "vendor": "dunder",
+   "color": "#D97757",
+   "acc": [
+    "hairShort:#9C7B55",
+    "shirt:#5B7DB1",
+    "chili"
+   ],
+   "bio": "Accountant. Makes the best chili in Scranton. Carries it carefully.",
+   "lines": [
+    "Why waste time say lot word when few word do trick?",
+    "My famous chili 🌶️",
+    "Keleven.",
+    "Nobody touches my M&Ms."
+   ]
+  },
+  {
+   "id": "dm-kelly",
+   "name": "Kelly Kapoorr",
+   "title": "Customer Service",
+   "kind": "dm",
+   "vendor": "dunder",
+   "color": "#D97757",
+   "acc": [
+    "hairLong:#141010",
+    "shirt:#D946EF",
+    "phone"
+   ],
+   "bio": "Customer service. Knows everyone's business.",
+   "lines": [
+    "Who says exclamation points are unprofessional?!",
+    "I talk a lot, so I tune myself out.",
+    "Ryan! 💕"
+   ]
+  },
+  {
+   "id": "dm-stanley",
+   "name": "Stanley Hudsen",
+   "title": "Sales",
+   "kind": "dm",
+   "vendor": "dunder",
+   "color": "#D97757",
+   "acc": [
+    "fringe:#7A7A7A",
+    "mustache:#7A7A7A",
+    "glasses",
+    "shirt:#7FA3C9",
+    "tie:#7C2D12",
+    "crossword"
+   ],
+   "bio": "Sells paper. Does the crossword. Counts the days to retirement.",
+   "lines": [
+    "Did I stutter?",
+    "It's Pretzel Day! 🥨",
+    "Boy, have you lost your mind?",
+    "…crossword time."
+   ]
+  },
+  {
+   "id": "dm-phyllis",
+   "name": "Phyllis Vanse",
+   "title": "Sales",
+   "kind": "dm",
+   "vendor": "dunder",
+   "color": "#D97757",
+   "acc": [
+    "hairCurly:#A68A6D",
+    "shirt:#B8A1D9",
+    "knitting"
+   ],
+   "bio": "Sells paper, knits, married to Bob Vance (Vance Refrigeration).",
+   "lines": [
+    "Close your mouth, sweetie. You look like a trout.",
+    "Bob Vance, Vance Refrigeration.",
+    "Ooh, gossip."
+   ]
+  },
+  {
+   "id": "dm-creed",
+   "name": "Creed Brattle",
+   "title": "Quality Assurance",
+   "kind": "dm",
+   "vendor": "dunder",
+   "color": "#D97757",
+   "acc": [
+    "wildhair:#D8D8D8",
+    "suit:#3A3F44"
+   ],
+   "bio": "Quality assurance. Nobody knows what he does.",
+   "lines": [
+    "I've been involved in a number of cults.",
+    "www.creedthoughts.gov.www/creedthoughts",
+    "I sprout mung beans on a damp paper towel."
+   ]
+  },
+  {
+   "id": "dm-meredith",
+   "name": "Meredith Palmerr",
+   "title": "Supplier Relations",
+   "kind": "dm",
+   "vendor": "dunder",
+   "color": "#D97757",
+   "acc": [
+    "hairShort:#B5462A",
+    "shirt:#4D7C4F",
+    "mug"
+   ],
+   "bio": "Supplier relations. It is Friday somewhere.",
+   "lines": [
+    "It's Friday somewhere. 🍹",
+    "Fun run!",
+    "Is that a party?"
    ]
   },
   {

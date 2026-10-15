@@ -158,7 +158,7 @@ HR interviews eight plugins every week (ISO week, MYT). Candidates come from the
 
 ## Characters
 
-`blender/build_cast.py` builds every character from `public/cast.json` and exports `public/models/cast.glb`:
+`build_cast.py` (on the external SSD at `/Volumes/ExtSSD_MainStorage/EXT_Project_Pipeline/EXT_008_claude-backend/blender/build_cast.py`) builds every character from `public/cast.json` and exports `public/models/cast.glb`:
 
 ```sh
 npm run models

@@ -86,6 +86,21 @@
   <button id="digest" class="copy" hidden title="Send today's digest to Telegram now">Send today's digest</button>
   <small id="digest-msg" class="muted"></small>
 </section>
+
+<section class="card registry" id="registry" hidden aria-label="Plugin registry">
+  <button class="x" id="registry-close" aria-label="Close">&times;</button>
+  <h2>Registry</h2>
+  <input type="search" id="registry-search" placeholder="Search plugins, MCPs, skills…" autocomplete="off">
+  <div class="registry-filters">
+    <button class="filter on" data-filter="all">All</button>
+    <button class="filter" data-filter="plugin">Plugins</button>
+    <button class="filter" data-filter="mcp">MCPs</button>
+    <button class="filter" data-filter="skill">Skills</button>
+    <button class="filter" data-filter="core">Core</button>
+  </div>
+  <div id="registry-list"></div>
+  <small id="registry-count" class="muted"></small>
+</section>
 <div id="flash"></div>
 
 <!-- phones held sideways: the ribbon and the cards tuck away behind these -->
@@ -117,6 +132,7 @@
   <button id="fullscreen" title="Full screen">&#x26F6; Full screen</button>
   <button id="install" title="Install Clawd Mifflin as an app" hidden>&#x2B07; Install app</button>
   <button id="report-btn" title="This week in numbers">&#x1F4CA; Report</button>
+  <button id="registry-btn" title="All plugins, MCPs, skills">&#x1F4E6; Registry</button>
   <button id="spotify" title="Spotify on the Mac">&#9835; Spotify</button>
   <button id="timelapse" title="Play back today and save it as a video">&#x23FA; Time-lapse</button>
   <button id="replay" title="Play back today's work in 90 seconds">&#x25B6; Replay</button>

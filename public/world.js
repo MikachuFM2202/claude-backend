@@ -194,6 +194,7 @@ export const blocked = (i, j) => i < 0 || j < 0 || i >= GW || j >= GH || grid[j 
 export const MAIN = { x0: -20, x1: 20, z0: -13, z1: 13 };
 export const WLB = { x0: 31, x1: 61, z0: -11, z1: 9 };
 export const TERM = { x0: 21.5, x1: 29.5, z0: 1, z1: 10 }; // the terminal annex between the two buildings
+export const DM = { x0: 21.5, x1: 29.5, z0: -9, z1: 1 };   // the Scranton branch, through a door in the terminals' north wall
 export const REC = { x0: -40, x1: -20, z0: -13, z1: 13 };  // the rec wing west of the main office, through its doors
 export const ASSEMBLY = { x0: -10, x1: 2, z0: 12.6, z1: 17 }; // the lawn outside the front door: fire drills
 let hqOn = false;
@@ -207,7 +208,7 @@ function bakeGrid() {
   const inside = (x, z, b) => x > b.x0 + 0.2 && x < b.x1 - 0.2 && z > b.z0 + 0.2 && z < b.z1 - 0.2;
   for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
     const [x, z] = centre(i, j);
-    if (!inside(x, z, MAIN) && !(hqOn && inside(x, z, WLB)) && !inside(x, z, TERM) && !inside(x, z, REC) && !inside(x, z, ASSEMBLY)) grid[j * GW + i] = 1; // staff stay indoors (and out on the lawn for drills)
+    if (!inside(x, z, MAIN) && !(hqOn && inside(x, z, WLB)) && !inside(x, z, TERM) && !inside(x, z, DM) && !inside(x, z, REC) && !inside(x, z, ASSEMBLY)) grid[j * GW + i] = 1; // staff stay indoors (and out on the lawn for drills)
   }
 }
 export function nearestFree(i, j) {
@@ -278,7 +279,7 @@ const pools = () => ({
 export const spots = { main: pools(), wl: pools(), term: pools() };
 export const layout = {
   desks: [], cowork: [], mcpOffices: [], sessions: [], boss: null, archive: null, reception: null, hrDesk: null, cand: [],
-  wlOffices: [], wlFuture: {}, fair: {}, planSpots: [], clashSpots: [], assembly: [], lab: null, wlReception: null, pools: [], cabinets: [], exit: { main: null, wl: null, term: null }, terminals: [], waitSpots: [],
+  dmDesks: [], wlOffices: [], wlFuture: {}, fair: {}, planSpots: [], clashSpots: [], assembly: [], lab: null, wlReception: null, pools: [], cabinets: [], exit: { main: null, wl: null, term: null }, terminals: [], waitSpots: [],
 };
 
 // ------------------------------------------------------------------ walls on the 0.5 m grid, like the Home Map
@@ -499,10 +500,10 @@ function site() {
   for (const [g0, g1, zStart] of [[-5, -3.5, MAIN.z1], ...(hqOn ? [[34.5, 36, WLB.z1]] : [])]) for (let z = zStart + 0.25; z < bz1 - 0.2; z += 0.5) for (let x = g0 + 0.25; x < g1; x += 0.5) put('tile', x, z, 0, { tint: '#DAD5CC', tintParts: ['tint'], shadow: false });
   for (let x = MAIN.x1 + 0.25; x < (hqOn ? WLB.x0 : TERM.x1); x += 0.5) for (const z of [11.75, 12.25]) put('tile', x, z, 0, { tint: '#DAD5CC', tintParts: ['tint'], shadow: false });
   // staff parking between the buildings: two cars and the kapcai
-  put('dev_car', 23.2, -7, 0); put('dev_car', 27.3, -7, Math.PI); put('dev_motorcycle', 22.6, -2.2, 0.2); put('dev_motorcycle', 23.4, -1.9, -0.15);
+  put('dev_car', 23.4, -11.6, Math.PI / 2); put('dev_car', 27.6, -11.6, -Math.PI / 2); put('dev_motorcycle', 30.2, -6, 0.2); put('dev_motorcycle', 30.3, -4.4, -0.15);
   for (let z = TERM.z1 + 0.25; z < 11.5; z += 0.5) for (const x of [25.25, 25.75]) put('tile', x, z, 0, { tint: '#DAD5CC', tintParts: ['tint'], shadow: false });
   const trees = [[-22, -15.5], [-17, -16], [-9, -16.2], [-2, -15.8], [6, -16.1], [14, -15.6], [22.5, -15.5], [29, -15.6], [38, -14.5], [46, -15], [55, -14.6], [63.6, -8], [63.8, 1], [63.4, 10], [61, -14.8],
-    [-42.5, -6], [-42.2, 3], [-42.6, 11], [-42.4, -15.5], [26, -3], [28.6, -12], [-21, 15.8], [-12, 15.6], [2, 16], [12, 16.2], [20.5, 16.2], [29, 16], [44, 15.4], [52, 16]];
+    [-42.5, -6], [-42.2, 3], [-42.6, 11], [-42.4, -15.5], [-21, 15.8], [-12, 15.6], [2, 16], [12, 16.2], [20.5, 16.2], [29, 16], [44, 15.4], [52, 16]];
   trees.filter(([x]) => x < bx1 - 1).forEach(([x, z], k) => put(['tree_round', 'tree_pine', 'bush', 'tree_round'][k % 4], x, z, k * 1.7, { s: k % 4 === 2 ? 1.6 : 1.25 + (k % 3) * 0.15 }));
 }
 
@@ -805,6 +806,49 @@ function buildTerminals() {
   layout.pools.push([25.5, 3], [25.5, 7]);
 }
 
+// ------------------------------------------------------------------ the Scranton branch: The Office cast, north of the terminals
+// The boss's office in the corner, Pam at reception by the door, three pods of four. The cast in cast.json (kind
+// 'dm') takes these desks in order, so keep the two lists in step.
+function buildScranton() {
+  shell(DM, [22, 23]);
+  zone(DM.x0, DM.z0, DM.x1, DM.z1, '#2B4C7E', { mix: 0.2, label: 'SCRANTON BRANCH', labelW: 3.4, sub: 'Clawd Mifflin Paper Co.', labelX: 27.3, labelZ: -0.2 });
+  room(25.5, DM.z0, DM.x1, -5.5, { s: [[26, 27]] });
+  zone(25.5, DM.z0, DM.x1, -5.5, ROOM_TINT[0], { label: "BOSS'S OFFICE", labelW: 2.6, sub: "world's best boss" });
+  const D = layout.dmDesks;
+  D.push(desk(27, -7, Math.PI, { chairTint: '#1F1F1F' }));
+  cyl(0.05, 0.1, '#fff', 27.45, 0.75, -7.05, { segs: 10 }); // World's Best Boss mug
+  put('dev_sofa', 29.2, -7.2, -Math.PI / 2, { tint: '#8B5A2B', tintParts: ['sofa'] });
+  spots.term.couch.push(...[-0.5, 0.5].map((d) => spot(29, -7.2 + d, -Math.PI / 2, 'sit', { ax: 28.2, az: -7.2 + d })));
+  spots.term.window.push(spot(25.9, DM.z0 + 0.45, Math.PI));
+  // reception by the door: a counter facing the way in, and the candy jar
+  for (const z of [-0.75, -0.25, 0.25]) put('counter', 24, z, Math.PI / 2, { block: true });
+  const jar = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 8), new THREE.MeshStandardMaterial({ color: '#cde8ff', transparent: true, opacity: 0.55, roughness: 0.1 }));
+  jar.position.set(24, 1.02, 0.2); scene.add(jar);
+  put('dev_chair', 24.7, -0.25, Math.PI / 2);
+  D.push(spot(24.7, -0.25, -Math.PI / 2, 'sit'));
+  // pods: sales (Dwight faces Jim), accounting, and the rest
+  for (const [xc, zc] of [[23.3, -3], [23.3, -7], [27.5, -3]]) {
+    box(2.2, 1.05, 0.04, '#E6C49B', xc, 0, zc);
+    for (const dx of [-0.55, 0.55]) { D.push(desk(xc + dx, zc - 0.29, Math.PI, { pc: false })); D.push(desk(xc + dx, zc + 0.29, 0, { pc: false })); }
+    layout.pools.push([xc, zc]);
+  }
+  // Jim's prank: Dwight's stapler, set in Jell-O on his desk
+  const jello = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.13, 0.16), new THREE.MeshStandardMaterial({ color: '#F5D33B', transparent: true, opacity: 0.6, roughness: 0.15 }));
+  jello.position.set(22.42, 0.82, -3.38); scene.add(jello);
+  box(0.15, 0.045, 0.05, '#2B2B2B', 22.42, 0.78, -3.38, { shadow: false });
+  // Kevin's famous chili, all over the carpet
+  const chili = cyl(0.4, 0.01, '#8B2E16', 24.6, 0.005, -8.3, { segs: 18 });
+  chili.scale.z = 0.6; chili.castShadow = false;
+  put('dev_printer', 25, -8.5, 0, { block: true });
+  spots.term.copier.push(spot(25, -7.75, Math.PI));
+  put('dev_dispenser', 29.05, -0.4, -Math.PI / 2, { block: true });
+  spots.term.cooler.push(spot(28.25, -0.4, Math.PI / 2));
+  plant(21.95, -8.55, 0.8); plant(29.05, -5.0, 0.8, 'tree_round');
+  put('dev_aircon', 23.3, DM.z0 + 0.1, 0);
+  put('dev_wall_light', DM.x0 + 0.08, -4, Math.PI / 2);
+  layout.pools.push([27.5, -7.2], [24.6, -0.4]);
+}
+
 // ------------------------------------------------------------------ the rec wing: game room, gym, chill zone, careers fair
 function buildRec(fair) {
   const R = REC, P = spots.main, RX = -34; // RX: where the game room, gym and fair start; west of it, pods and the lab
@@ -1027,12 +1071,14 @@ export function buildCampus(opts) {
   buildMain(opts);
   if (hqOn) buildWL(opts.hq);
   buildTerminals();
+  buildScranton();
   buildRec(opts.fair || []);
   buildAssembly();
   buildBoards();
   buildFloor(MAIN);
   if (hqOn) buildFloor(WLB);
   buildFloor(TERM);
+  buildFloor(DM);
   buildFloor(REC);
   buildWalls();
   buildSkyline();

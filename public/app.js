@@ -597,6 +597,87 @@ $('timelapse').onclick = () => {
 };
 $('report-close').onclick = () => ($('report').hidden = true);
 $('report-copy').onclick = () => navigator.clipboard?.writeText($('report').dataset.text || '').then(() => { $('report-copy').textContent = 'Copied'; setTimeout(() => ($('report-copy').textContent = 'Copy as text'), 1500); });
+
+// ------------------------------------------------------------------ registry: all plugins, MCPs, skills
+let registryFilter = 'all';
+function openRegistry() {
+  $('registry').hidden = false;
+  renderRegistry();
+  if (document.body.classList.contains('compact')) setDock(false);
+}
+function renderRegistry() {
+  const q = ($('registry-search').value || '').toLowerCase().trim();
+  const list = [...agents.values()].filter((a) => {
+    const d = a.def;
+    // filter by kind
+    if (registryFilter !== 'all') {
+      if (registryFilter === 'plugin' && d.kind !== 'plugin') return false;
+      if (registryFilter === 'mcp' && d.kind !== 'mcp') return false;
+      if (registryFilter === 'skill' && d.kind !== 'skill') return false;
+      if (registryFilter === 'core' && d.kind !== 'core') return false;
+    }
+    // skip sessions, boss, interns, candidates
+    if (['boss', 'session', 'intern', 'branch', 'candidate', 'wlcand', 'fair', 'archive', 'reception', 'hr', 'wl'].includes(d.kind)) return false;
+    // search
+    if (q && !(d.name?.toLowerCase().includes(q) || d.id?.toLowerCase().includes(q) || d.desc?.toLowerCase().includes(q) || d.vendor?.toLowerCase().includes(q))) return false;
+    return true;
+  }).sort((a, b) => (a.def.name || a.def.id).localeCompare(b.def.name || b.def.id));
+
+  const el = $('registry-list');
+  el.replaceChildren(...list.map((a) => {
+    const d = a.def;
+    const row = document.createElement('div'); row.className = 'reg-item';
+    // status dot
+    const dot = document.createElement('span'); dot.className = 'dot';
+    dot.style.background = a.working ? '#22C55E' : a.disabled ? '#EF4444' : colorOf(d);
+    // info
+    const info = document.createElement('div'); info.className = 'info';
+    const name = document.createElement('div'); name.className = 'name'; name.textContent = d.name || d.id;
+    const desc = document.createElement('div'); desc.className = 'desc'; desc.textContent = d.desc || d.bio || d.title || '';
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const badge = document.createElement('span'); badge.className = 'badge';
+    badge.textContent = a.working ? 'active' : a.disabled ? 'disabled' : 'idle';
+    badge.classList.add(a.working ? 'active' : a.disabled ? 'disabled' : '');
+    const kindBadge = document.createElement('span'); kindBadge.className = 'badge'; kindBadge.textContent = d.kind || 'tool';
+    const vendor = document.createElement('span'); vendor.textContent = ctx.cast.vendors[d.vendor]?.label || d.vendor || '';
+    meta.append(badge, kindBadge, vendor);
+    info.append(name, desc, meta);
+    // actions
+    const actions = document.createElement('div'); actions.className = 'actions';
+    if (d.url || d.homepage) {
+      const link = document.createElement('a');
+      link.href = d.url || d.homepage;
+      link.target = '_blank'; link.rel = 'noopener';
+      link.textContent = 'Open';
+      actions.append(link);
+    }
+    if (d.source) {
+      const src = document.createElement('a');
+      src.href = d.source;
+      src.target = '_blank'; src.rel = 'noopener';
+      src.textContent = 'Source';
+      actions.append(src);
+    }
+    const viewBtn = document.createElement('button');
+    viewBtn.textContent = 'View';
+    viewBtn.onclick = () => { select(a); $('registry').hidden = true; };
+    actions.append(viewBtn);
+
+    row.append(dot, info, actions);
+    row.onclick = (e) => { if (e.target === row || e.target.closest('.info')) { select(a); $('registry').hidden = true; } };
+    return row;
+  }));
+  $('registry-count').textContent = `${list.length} item${list.length === 1 ? '' : 's'}`;
+}
+$('registry-btn').onclick = openRegistry;
+$('registry-close').onclick = () => ($('registry').hidden = true);
+$('registry-search').oninput = renderRegistry;
+document.querySelectorAll('.registry-filters .filter').forEach((b) => (b.onclick = () => {
+  document.querySelectorAll('.registry-filters .filter').forEach((x) => x.classList.remove('on'));
+  b.classList.add('on');
+  registryFilter = b.dataset.filter;
+  renderRegistry();
+}));
 const replayList = () => (ctx.live ? ctx.state?.replay || [] : [...(ctx.state?.events || [])].reverse().map((e) => [e.t, e.char, e.tool, e.error ? 1 : 0]));
 $('replay').onclick = () => {
   if (replay.on) return stopReplay();

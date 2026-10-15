@@ -7,6 +7,6 @@
     "start": "node server.mjs",
     "snapshot": "node server.mjs --snapshot",
     "test": "node --test test/*.test.mjs",
-    "models": "/Applications/Blender.app/Contents/MacOS/Blender -b -P blender/build_cast.py -- public/cast.json public/models/cast.glb docs/cast.png"
+    "models": "/Applications/Blender.app/Contents/MacOS/Blender -b -P /Volumes/ExtSSD_MainStorage/EXT_Project_Pipeline/EXT_008_claude-backend/blender/build_cast.py -- public/cast.json public/models/cast.glb docs/cast.png"
   }
 }
